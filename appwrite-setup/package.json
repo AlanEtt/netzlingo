@@ -1,0 +1,13 @@
+{
+  "name": "netzlingo-appwrite-setup",
+  "version": "1.0.0",
+  "description": "Script setup database AppWrite untuk aplikasi NetzLingo",
+  "main": "setup-database.js",
+  "scripts": {
+    "setup": "node setup-database.js",
+    "add-languages": "node add-default-languages.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^11.1.0"
+  }
+} 

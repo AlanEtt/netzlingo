@@ -1,0 +1,173 @@
+{
+  "databaseId": "netzlingo_db",
+  "name": "NetzLingo",
+  "collections": [
+    {
+      "name": "Users",
+      "id": "users",
+      "attributes": [
+        {"key": "name", "type": "string", "required": true},
+        {"key": "email", "type": "string", "required": true},
+        {"key": "is_premium", "type": "boolean", "default": false},
+        {"key": "daily_goal", "type": "integer", "default": 10},
+        {"key": "preferred_language", "type": "string", "default": "id"},
+        {"key": "created_at", "type": "datetime", "default": "now()"},
+        {"key": "updated_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "email_index", "type": "unique", "attributes": ["email"]}
+      ]
+    },
+    {
+      "name": "Languages",
+      "id": "languages",
+      "attributes": [
+        {"key": "name", "type": "string", "required": true},
+        {"key": "code", "type": "string", "required": true},
+        {"key": "flag_icon", "type": "string", "required": false},
+        {"key": "created_at", "type": "datetime", "default": "now()"},
+        {"key": "updated_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "code_index", "type": "unique", "attributes": ["code"]}
+      ]
+    },
+    {
+      "name": "Categories",
+      "id": "categories",
+      "attributes": [
+        {"key": "name", "type": "string", "required": true},
+        {"key": "description", "type": "string", "default": ""},
+        {"key": "language_id", "type": "string", "required": false},
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "created_at", "type": "datetime", "default": "now()"},
+        {"key": "updated_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "key", "attributes": ["user_id"]},
+        {"key": "user_name_index", "type": "key", "attributes": ["user_id", "name"]}
+      ]
+    },
+    {
+      "name": "Phrases",
+      "id": "phrases",
+      "attributes": [
+        {"key": "original_text", "type": "string", "required": true},
+        {"key": "translated_text", "type": "string", "required": true},
+        {"key": "language_id", "type": "string", "required": true},
+        {"key": "category_id", "type": "string", "required": false},
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "notes", "type": "string", "default": ""},
+        {"key": "is_favorite", "type": "boolean", "default": false},
+        {"key": "importance", "type": "integer", "default": 1},
+        {"key": "created_at", "type": "datetime", "default": "now()"},
+        {"key": "updated_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "key", "attributes": ["user_id"]},
+        {"key": "language_id_index", "type": "key", "attributes": ["language_id"]},
+        {"key": "category_id_index", "type": "key", "attributes": ["category_id"]}
+      ]
+    },
+    {
+      "name": "Tags",
+      "id": "tags",
+      "attributes": [
+        {"key": "name", "type": "string", "required": true},
+        {"key": "color", "type": "string", "default": "#2196F3"},
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "created_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "key", "attributes": ["user_id"]},
+        {"key": "user_name_index", "type": "unique", "attributes": ["user_id", "name"]}
+      ]
+    },
+    {
+      "name": "PhraseTags",
+      "id": "phrase_tags",
+      "attributes": [
+        {"key": "phrase_id", "type": "string", "required": true},
+        {"key": "tag_id", "type": "string", "required": true},
+        {"key": "user_id", "type": "string", "required": true}
+      ],
+      "indexes": [
+        {"key": "phrase_tag_index", "type": "unique", "attributes": ["phrase_id", "tag_id"]},
+        {"key": "user_id_index", "type": "key", "attributes": ["user_id"]}
+      ]
+    },
+    {
+      "name": "ReviewHistory",
+      "id": "review_history",
+      "attributes": [
+        {"key": "phrase_id", "type": "string", "required": true},
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "review_date", "type": "datetime", "required": true},
+        {"key": "was_correct", "type": "boolean", "required": true},
+        {"key": "ease_factor", "type": "double", "default": 2.5},
+        {"key": "interval", "type": "integer", "default": 1}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "key", "attributes": ["user_id"]},
+        {"key": "phrase_id_index", "type": "key", "attributes": ["phrase_id"]},
+        {"key": "review_date_index", "type": "key", "attributes": ["review_date"]}
+      ]
+    },
+    {
+      "name": "StudySessions",
+      "id": "study_sessions",
+      "attributes": [
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "start_time", "type": "datetime", "required": true},
+        {"key": "end_time", "type": "datetime", "required": false},
+        {"key": "total_phrases", "type": "integer", "required": true},
+        {"key": "correct_answers", "type": "integer", "required": true},
+        {"key": "session_type", "type": "string", "required": true},
+        {"key": "language_id", "type": "string", "required": false},
+        {"key": "category_id", "type": "string", "required": false}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "key", "attributes": ["user_id"]},
+        {"key": "start_time_index", "type": "key", "attributes": ["start_time"]}
+      ]
+    },
+    {
+      "name": "Settings",
+      "id": "settings",
+      "attributes": [
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "app_language", "type": "string", "default": "id"},
+        {"key": "theme", "type": "string", "default": "light"},
+        {"key": "is_dark_mode", "type": "boolean", "default": false},
+        {"key": "enable_tts", "type": "boolean", "default": true},
+        {"key": "enable_notifications", "type": "boolean", "default": true},
+        {"key": "notification_time", "type": "string", "default": "20:00"},
+        {"key": "daily_goal", "type": "integer", "default": 10},
+        {"key": "daily_session_count", "type": "integer", "default": 0},
+        {"key": "last_session_date", "type": "datetime", "required": false},
+        {"key": "updated_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "unique", "attributes": ["user_id"]}
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "id": "subscriptions",
+      "attributes": [
+        {"key": "user_id", "type": "string", "required": true},
+        {"key": "plan_type", "type": "string", "required": true},
+        {"key": "start_date", "type": "datetime", "required": true},
+        {"key": "end_date", "type": "datetime", "required": true},
+        {"key": "is_active", "type": "boolean", "default": true},
+        {"key": "payment_method", "type": "string", "required": false},
+        {"key": "created_at", "type": "datetime", "default": "now()"},
+        {"key": "updated_at", "type": "datetime", "default": "now()"}
+      ],
+      "indexes": [
+        {"key": "user_id_index", "type": "unique", "attributes": ["user_id"]},
+        {"key": "end_date_index", "type": "key", "attributes": ["end_date"]}
+      ]
+    }
+  ]
+} 

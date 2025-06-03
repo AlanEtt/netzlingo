@@ -1,0 +1,53 @@
+name: netzlingo
+description: Aplikasi penyimpan dan pembelajaran frasa bahasa.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.5
+  path_provider: ^2.1.1
+  provider: ^6.0.5
+  flutter_tts: ^3.8.3
+  flutter_local_notifications: ^15.1.1
+  shared_preferences: ^2.2.2
+  intl: ^0.19.0
+  uuid: ^4.0.0
+  csv: ^5.0.2
+  file_picker: ^5.5.0
+  permission_handler: ^11.0.1
+  fl_chart: ^0.63.0
+  google_fonts: ^6.2.1
+  appwrite: ^11.0.0
+  flutter_secure_storage: ^9.0.0
+  in_app_purchase: ^3.1.11
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.3
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    
+  # Kita akan menggunakan Google Fonts sebagai alternatif dari font lokal
+  # fonts:
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: assets/fonts/Poppins-Regular.ttf
+  #       - asset: assets/fonts/Poppins-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Poppins-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Poppins-Bold.ttf
+  #         weight: 700 
