@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Appwrite setup files (contains sensitive API keys)
+/appwrite-setup/

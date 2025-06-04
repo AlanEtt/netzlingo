@@ -25,7 +25,7 @@
 Dokumen ini bertujuan untuk menjelaskan persyaratan dan spesifikasi untuk pengembangan aplikasi NetzLingo, sebuah aplikasi penyimpan frasa bahasa yang memungkinkan pengguna untuk menyimpan, mengorganisir, dan mempelajari frasa atau kata dalam berbagai bahasa dengan mudah dan efektif.
 
 ### 1.2 Ruang Lingkup
-NetzLingo adalah aplikasi mobile berbasis Flutter dengan penyimpanan lokal yang berfokus pada penyimpanan dan pembelajaran frasa bahasa. Aplikasi ini memungkinkan pengguna untuk mencatat frasa, mengorganisirnya dalam kategori, meninjau dengan algoritma spaced repetition, dan mendapatkan notifikasi pengingat belajar tanpa memerlukan koneksi internet terus-menerus.
+NetzLingo adalah aplikasi mobile berbasis Flutter dengan penyimpanan cloud yang berfokus pada penyimpanan dan pembelajaran frasa bahasa. Aplikasi ini memungkinkan pengguna untuk mencatat frasa, mengorganisirnya dalam kategori, meninjau dengan algoritma spaced repetition, dan mendapatkan notifikasi pengingat belajar tanpa memerlukan koneksi internet terus-menerus.
 
 ### 1.3 Target Pengguna
 Target pengguna utama adalah individu berusia 15-60 tahun yang sedang atau ingin mempelajari bahasa asing, seperti:
