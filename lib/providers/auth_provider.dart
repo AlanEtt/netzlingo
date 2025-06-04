@@ -50,6 +50,27 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('Mencoba login untuk email: $email');
+
+      // Cek jika sudah ada sesi aktif, hapus dulu
+      try {
+        // Coba dapatkan sesi saat ini, jika ada
+        final currentSessions = await _userService.getActiveSessions();
+
+        if (currentSessions.isNotEmpty) {
+          print(
+              'Sesi aktif ditemukan: ${currentSessions.length}. Menghapus semua sesi...');
+          // Hapus semua sesi yang ada untuk mencegah error user_session_already_exists
+          await _userService.logoutAll();
+          // Tunggu sebentar untuk memastikan sesi benar-benar terhapus
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      } catch (sessionError) {
+        // Abaikan error saat mencoba mendapatkan sesi
+        print('Error saat mencoba mendapatkan sesi aktif: $sessionError');
+      }
+
+      // Sekarang coba login
       await _userService.login(email, password);
 
       // Dapatkan data user setelah login
@@ -61,7 +82,19 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      // Tangani berbagai jenis error
+      if (e.toString().contains('user_session_already_exists')) {
+        _error =
+            "Anda sudah login di perangkat lain. Silakan logout terlebih dahulu.";
+      } else if (e.toString().contains('user_invalid_credentials')) {
+        _error = "Email atau password salah. Silakan coba lagi.";
+      } else if (e.toString().contains('general_unauthorized')) {
+        _error = "Akses tidak diizinkan. Cek email dan password Anda.";
+      } else {
+        _error = "Login gagal: ${e.toString()}";
+      }
+
+      print("Login error: $_error");
       _isLoading = false;
       notifyListeners();
       return false;
@@ -78,19 +111,41 @@ class AuthProvider with ChangeNotifier {
       // Daftar akun baru
       final user = await _userService.signup(email, password, name);
 
-      // Login otomatis setelah signup
-      await _userService.login(email, password);
+      // Tunggu sebentar sebelum melakukan login untuk menghindari konflik sesi
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      // Dapatkan data user setelah login
-      _currentAccount = await _userService.getCurrentUser();
-      _currentUser = await _userService.getUserModel(_currentAccount!.$id);
-      _isAuthenticated = true;
+      // Login manual setelah signup
+      try {
+        await _userService.login(email, password);
 
-      _isLoading = false;
-      notifyListeners();
-      return true;
+        // Dapatkan data user setelah login
+        _currentAccount = await _userService.getCurrentUser();
+        _currentUser = await _userService.getUserModel(_currentAccount!.$id);
+        _isAuthenticated = true;
+
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } catch (loginError) {
+        print("Error during post-signup login: $loginError");
+        _error =
+            "Registrasi berhasil tetapi gagal masuk otomatis. Silakan login manual.";
+        _isLoading = false;
+        notifyListeners();
+        // Meskipun login gagal, registrasi berhasil, jadi tetap return true
+        return true;
+      }
     } catch (e) {
-      _error = e.toString();
+      if (e.toString().contains('user_session_already_exists')) {
+        _error =
+            "Email sudah terdaftar dan sedang aktif. Silakan logout dari perangkat lain atau gunakan email lain.";
+      } else if (e.toString().contains('email already exists')) {
+        _error =
+            "Email sudah terdaftar. Silakan gunakan email lain atau login.";
+      } else {
+        _error = "Registrasi gagal: ${e.toString()}";
+      }
+      print("Signup error: $_error");
       _isLoading = false;
       notifyListeners();
       return false;
@@ -213,22 +268,42 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Menghapus semua sesi aktif
+  Future<void> clearAllSessions() async {
+    try {
+      print('Attempting to clear all active sessions');
+      await _userService.logoutAll();
+      
+      // Reset state
+      _currentAccount = null;
+      _currentUser = null;
+      _isAuthenticated = false;
+      _error = null;
+      
+      notifyListeners();
+      print('All sessions cleared successfully');
+    } catch (e) {
+      print('Error clearing sessions: $e');
+      rethrow;
+    }
+  }
+
   // Refresh session untuk mengatasi user_unauthorized
   Future<bool> refreshSession() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('Attempting to refresh user session');
-      
+
       // Dapatkan data user yang fresh
       _currentAccount = await _userService.getCurrentUser();
-      
+
       if (_currentAccount != null) {
         print('Session refreshed successfully');
         _isAuthenticated = true;
-        
+
         // Refresh data user model juga
         try {
           _currentUser = await _userService.getUserModel(_currentAccount!.$id);
@@ -236,7 +311,7 @@ class AuthProvider with ChangeNotifier {
           print('Error refreshing user model: $userModelError');
           // Tetap lanjutkan meski gagal dapat user model
         }
-        
+
         _isLoading = false;
         notifyListeners();
         return true;

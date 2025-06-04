@@ -31,11 +31,11 @@ void main() async {
     // 1. Inisialisasi frasa universal
     final phraseService = PhraseService(appwriteService);
     await phraseService.createUniversalPublicPhrases();
-    
+
     // 2. Inisialisasi pengaturan universal
     final settingsService = SettingsService(appwriteService);
     await settingsService.getOrCreateUniversalSettings();
-    
+
     print("Universal data initialized successfully");
   } catch (e) {
     print("Error initializing universal data: $e");
@@ -76,18 +76,20 @@ class _NetzLingoAppState extends State<NetzLingoApp> {
         builder: (context, authProvider, settingsProvider, child) {
           // Default ke light theme jika terjadi error
           bool isDarkMode = false;
-          
+
           try {
             // Gunakan tema berdasarkan pengaturan user atau default (light theme)
-            isDarkMode = authProvider.isAuthenticated && settingsProvider.settings != null
+            isDarkMode = authProvider.isAuthenticated &&
+                    settingsProvider.settings != null
                 ? settingsProvider.isDarkMode
                 : false;
             print('Theme mode: ${isDarkMode ? 'dark' : 'light'}');
           } catch (e) {
             print('Error getting theme mode: $e');
           }
-          
-          final themeData = isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme;
+
+          final themeData =
+              isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme;
 
           return MaterialApp(
             title: 'NetzLingo',
@@ -148,8 +150,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
       // Jika user sudah login, muat pengaturan
       if (authProvider.isAuthenticated && authProvider.userId.isNotEmpty) {
-        print('User authenticated - loading settings for user: ${authProvider.userId}');
-        
+        print(
+            'User authenticated - loading settings for user: ${authProvider.userId}');
+
         try {
           // Muat pengaturan
           final settingsProvider =
@@ -174,7 +177,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }
     } catch (e) {
       print('Error in _checkAuthStatus: $e');
-      _error = e.toString();
+
+      // Coba tangani error sesi yang mungkin terjadi
+      if (e.toString().contains('user_session_already_exists')) {
+        try {
+          print('Mencoba menghapus sesi yang bermasalah...');
+          final authProvider =
+              Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.clearAllSessions();
+          _error = 'Sesi sebelumnya telah dihapus. Silakan login kembali.';
+        } catch (clearError) {
+          print('Gagal menghapus sesi: $clearError');
+          _error =
+              'Terjadi masalah pada sesi aplikasi. Restart aplikasi dan coba lagi.';
+        }
+      } else {
+        _error = e.toString();
+      }
     } finally {
       if (mounted) {
         setState(() {

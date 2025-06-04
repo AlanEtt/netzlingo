@@ -221,6 +221,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ? null
                             : () async {
                                 if (_formKey.currentState!.validate()) {
+                                  // Sembunyikan keyboard
+                                  FocusScope.of(context).unfocus();
+
+                                  // Tampilkan dialog proses
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content:
+                                            Text('Memproses pendaftaran...'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+
                                   final success = await authProvider.signup(
                                     _nameController.text.trim(),
                                     _emailController.text.trim(),
@@ -228,10 +242,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   );
 
                                   if (success && mounted) {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const HomeScreen(),
+                                    if (authProvider.isAuthenticated) {
+                                      // Jika berhasil login otomatis, arahkan ke HomeScreen
+                                      Navigator.of(context).pushReplacement(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const HomeScreen(),
+                                        ),
+                                      );
+                                    } else {
+                                      // Jika registrasi berhasil tapi tidak otomatis login,
+                                      // tampilkan pesan dan arahkan ke login screen
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Registrasi berhasil! Silakan login dengan akun baru Anda.'),
+                                          duration: Duration(seconds: 3),
+                                        ),
+                                      );
+
+                                      // Arahkan ke halaman login
+                                      if (mounted) {
+                                        Navigator.of(context).pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoginScreen(),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  } else if (!success && mounted) {
+                                    // Tampilkan error lengkap jika ada
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            'Gagal: ${authProvider.error ?? "Terjadi kesalahan"}'),
+                                        duration: const Duration(seconds: 3),
+                                        backgroundColor: Colors.red,
                                       ),
                                     );
                                   }

@@ -100,22 +100,22 @@ gantt
     title Alur Iterasi Pengembangan MVP NetzLingo
     dateFormat  YYYY-MM-DD
     section Persiapan
-    Perencanaan & Desain          :a1, 2024-06-20, 3d
+    Perencanaan & Desain          :a1, 2025-06-01, 2d
     Setup Lingkungan & AppWrite   :a2, after a1, 5d
     section Pengembangan
-    Iterasi 1: Autentikasi & Struktur Dasar   :b1, after a2, 2w
-    Iterasi 2: Sistem Pembelajaran & Kategori :b2, after b1, 2w
-    Iterasi 3: Premium Features & Monetisasi  :b3, after b2, 2w
-    Iterasi 4: Notifikasi & TTS              :b4, after b3, 2w
-    Iterasi 5: Import/Export & UI/UX          :b5, after b4, 2w
+    Iterasi 1: Autentikasi & Struktur Dasar   :b1, after a2, 12d
+    Iterasi 2: Sistem Pembelajaran & Kategori :b2, 2025-06-04, 7d
+    Iterasi 3: Premium Features & Monetisasi  :b3, 2025-06-18, 7d
+    Iterasi 4: Notifikasi & TTS              :b4, 2025-06-25, 7d
+    Iterasi 5: Import/Export & UI/UX          :b5, 2025-07-02, 7d
     section Testing
-    Testing Internal              :c1, after b5, 1w
-    User Testing                  :c2, after c1, 1w
-    Perbaikan Bug                 :c3, after c2, 1w
+    Testing Internal              :c1, 2025-07-09, 5d
+    User Testing                  :c2, 2025-07-15, 5d
+    Perbaikan Bug                 :c3, 2025-07-20, 5d
     section Deployment
-    Persiapan Deployment          :d1, after c3, 1w
-    Deployment MVP                :d2, after d1, 1w
-    Monitoring & Evaluasi         :d3, after d2, 1w
+    Persiapan Deployment          :d1, 2025-07-25, 5d
+    Deployment MVP                :d2, 2025-07-30, 5d
+    Monitoring & Evaluasi         :d3, 2025-08-04, 5d
 ```
 
 ## Flowchart Proses Pengembangan

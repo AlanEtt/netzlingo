@@ -33,12 +33,9 @@ class UserService {
         password: password,
         name: name,
       );
-      
-      // 2. Login secara otomatis setelah signup
-      await _account.createEmailSession(
-        email: email,
-        password: password,
-      );
+
+      // 2. HAPUS Login otomatis setelah signup - ini menyebabkan error user_session_already_exists
+      // Kita akan membiarkan AuthProvider yang melakukan login secara terpisah
 
       // 3. Buat dokumen user di collection users
       try {
@@ -72,6 +69,28 @@ class UserService {
     try {
       await _account.deleteSession(sessionId: 'current');
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Mendapatkan semua sesi aktif
+  Future<List<Session>> getActiveSessions() async {
+    try {
+      final result = await _account.listSessions();
+      return result.sessions;
+    } catch (e) {
+      print("Error getting active sessions: $e");
+      return [];
+    }
+  }
+
+  // Logout dari semua sesi
+  Future<void> logoutAll() async {
+    try {
+      await _account.deleteSessions();
+      print("Logout from all sessions successful");
+    } catch (e) {
+      print("Error during logoutAll: $e");
       rethrow;
     }
   }
@@ -131,11 +150,11 @@ class UserService {
     } catch (e) {
       // Jika gagal mendapatkan dokumen, coba buat dokumen baru
       print("Error getting user document: $e");
-      
+
       try {
         // Coba dapatkan data user dari akun
         final user = await _account.get();
-        
+
         // Buat dokumen user baru jika belum ada
         final userModel = UserModel(
           id: userId,
@@ -147,10 +166,10 @@ class UserService {
           dailyGoal: 10,
           preferredLanguage: 'id',
         );
-        
+
         // Coba buat dokumen user
         await _createUserDocument(user);
-        
+
         return userModel;
       } catch (innerError) {
         print("Error creating missing user document: $innerError");
@@ -250,7 +269,7 @@ class UserService {
   }) async {
     try {
       Document? document;
-      
+
       // Coba ambil dokumen user
       try {
         document = await _databases.getDocument(
@@ -263,7 +282,7 @@ class UserService {
         // Jika dokumen tidak ditemukan, coba dapatkan user dari auth dan buat dokumen
         final user = await _account.get();
         await _createUserDocument(user);
-        
+
         // Coba ambil lagi setelah dibuat
         document = await _databases.getDocument(
           databaseId: AppwriteConstants.databaseId,

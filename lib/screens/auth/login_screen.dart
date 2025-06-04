@@ -148,6 +148,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? null
                             : () async {
                                 if (_formKey.currentState!.validate()) {
+                                  // Sembunyikan keyboard
+                                  FocusScope.of(context).unfocus();
+
+                                  // Reset error sebelumnya
+                                  authProvider.resetError();
+
+                                  // Tampilkan snackbar proses
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Memproses...'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+
                                   final success = await authProvider.login(
                                     _emailController.text.trim(),
                                     _passwordController.text.trim(),
@@ -158,6 +172,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             const HomeScreen(),
+                                      ),
+                                    );
+                                  } else if (!success && mounted) {
+                                    // Tampilkan error lengkap jika login gagal
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          authProvider.error ??
+                                              'Gagal masuk. Periksa email dan password Anda.',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                        duration: const Duration(seconds: 5),
                                       ),
                                     );
                                   }
