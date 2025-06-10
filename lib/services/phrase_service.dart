@@ -24,7 +24,7 @@ class PhraseService {
       return Phrase.fromDocument(document);
     } catch (e) {
       print("Error getting phrase: $e");
-      
+
       // Buat default phrase jika error
       return Phrase(
         id: id,
@@ -44,7 +44,7 @@ class PhraseService {
   Future<void> createUniversalPublicPhrases() async {
     try {
       print("Creating universal public phrases in database");
-      
+
       // Periksa apakah frasa publik sudah ada
       final existingPhrases = await _databases.listDocuments(
         databaseId: AppwriteConstants.databaseId,
@@ -53,22 +53,22 @@ class PhraseService {
           Query.equal('user_id', 'universal'),
         ],
       );
-      
+
       if (existingPhrases.documents.isNotEmpty) {
         print("Universal phrases already exist, skipping creation");
         return;
       }
-      
+
       // Buat frasa publik dari frasa statis default
       final defaultPhrases = Phrase.getDefaultPublicPhrases();
-      
+
       for (var phrase in defaultPhrases) {
         // Ubah userId menjadi 'universal' dan set isPublic ke true
         final universalPhrase = phrase.copyWith(
           userId: 'universal',
           isPublic: true,
         );
-        
+
         await _databases.createDocument(
           databaseId: AppwriteConstants.databaseId,
           collectionId: AppwriteConstants.phrasesCollection,
@@ -85,7 +85,7 @@ class PhraseService {
           ],
         );
       }
-      
+
       print("Universal public phrases created successfully");
     } catch (e) {
       print("Error creating universal public phrases: $e");
@@ -101,10 +101,10 @@ class PhraseService {
     try {
       print("Getting public phrases for all users");
       List<String> queries = [];
-      
+
       // Pendekatan lebih permisif - coba cari frasa milik user universal dulu
       queries.add(Query.equal('user_id', 'universal'));
-      
+
       // Filter tambahan jika diperlukan
       if (languageId != null) {
         queries.add(Query.equal('language_id', languageId));
@@ -113,7 +113,7 @@ class PhraseService {
       if (categoryId != null) {
         queries.add(Query.equal('category_id', categoryId));
       }
-      
+
       // Batasi jumlah frasa
       queries.add(Query.limit(limit));
 
@@ -122,16 +122,16 @@ class PhraseService {
         collectionId: AppwriteConstants.phrasesCollection,
         queries: queries,
       );
-      
+
       List<Phrase> phrases = documentList.documents
           .map((doc) => Phrase.fromDocument(doc))
           .toList();
-      
+
       // Jika tidak menemukan frasa universal, coba cari frasa publik
       if (phrases.isEmpty) {
         print("No universal phrases found, trying public phrases");
         queries = [Query.equal('is_public', true)];
-        
+
         if (languageId != null) {
           queries.add(Query.equal('language_id', languageId));
         }
@@ -139,26 +139,26 @@ class PhraseService {
         if (categoryId != null) {
           queries.add(Query.equal('category_id', categoryId));
         }
-        
+
         queries.add(Query.limit(limit));
-        
+
         final publicDocuments = await _databases.listDocuments(
           databaseId: AppwriteConstants.databaseId,
           collectionId: AppwriteConstants.phrasesCollection,
           queries: queries,
         );
-        
+
         phrases = publicDocuments.documents
             .map((doc) => Phrase.fromDocument(doc))
             .toList();
       }
-      
+
       // Jika masih tidak menemukan frasa, gunakan frasa statis
       if (phrases.isEmpty) {
         print("No public phrases found in database, using static fallback");
         return getDefaultStaticPhrases();
       }
-      
+
       return phrases;
     } catch (e) {
       print("Error getting public phrases: $e");
@@ -205,23 +205,53 @@ class PhraseService {
         queries: queries,
       );
 
-      return documentList.documents
+      List<Phrase> phrases = documentList.documents
           .map((doc) => Phrase.fromDocument(doc))
           .toList();
+
+      // Jika tidak ada frasa yang ditemukan, coba dapatkan frasa dengan userId universal
+      if (phrases.isEmpty && userId != null && userId != 'universal') {
+        print("No phrases found for user $userId, trying universal phrases");
+        return await getPhrases(
+          userId: 'universal',
+          languageId: languageId,
+          categoryId: categoryId,
+          isFavorite: isFavorite,
+        );
+      }
+
+      // Jika masih kosong, dapatkan frasa publik
+      if (phrases.isEmpty) {
+        print("No user phrases found, getting public phrases");
+        return await getPublicPhrases(
+          languageId: languageId,
+          categoryId: categoryId,
+        );
+      }
+
+      // Jika masih kosong juga, kembalikan frasa default statis
+      if (phrases.isEmpty) {
+        print("Still no phrases found, returning default static phrases");
+        return getDefaultStaticPhrases();
+      }
+
+      return phrases;
     } catch (e) {
       print("Error getting phrases: $e");
-      
+
       // Jika gagal dan error adalah unauthorized, coba dapatkan frasa publik
-      if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
+      if (e.toString().contains('user_unauthorized') ||
+          e.toString().contains('401')) {
         print("Unauthorized access, getting public phrases instead");
         return await getPublicPhrases(
           languageId: languageId,
           categoryId: categoryId,
         );
       }
-      
-      // Return empty list instead of throwing
-      return [];
+
+      // Jika error lain, kembalikan frasa default statis
+      print("Error fetching phrases, returning default static phrases");
+      return getDefaultStaticPhrases();
     }
   }
 
@@ -270,7 +300,7 @@ class PhraseService {
       return Phrase.fromDocument(document);
     } catch (e) {
       print("Error adding phrase: $e");
-      
+
       // Jika gagal, coba lagi tanpa permissions
       try {
         final document = await _databases.createDocument(
@@ -308,7 +338,7 @@ class PhraseService {
       return Phrase.fromDocument(document);
     } catch (e) {
       print("Error updating phrase: $e");
-      
+
       // Jika gagal, coba lagi tanpa permissions
       try {
         final document = await _databases.updateDocument(

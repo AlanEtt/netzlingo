@@ -64,6 +64,14 @@ class StudyProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Pastikan frasa universal tersedia
+      try {
+        await _phraseService.createUniversalPublicPhrases();
+      } catch (e) {
+        print('Error ensuring universal phrases: $e');
+        // Lanjutkan meskipun gagal membuat frasa universal
+      }
+
       // Cek status premium - universal mode selalu dianggap free
       if (_isUniversalMode) {
         _isPremium = false;
@@ -321,6 +329,12 @@ class StudyProvider with ChangeNotifier {
         categoryId: categoryId,
       );
 
+      // Jika tidak ada frasa yang ditemukan, coba dengan frasa universal/default
+      if (_sessionPhrases.isEmpty) {
+        print("No phrases found for session, getting default phrases");
+        _sessionPhrases = _phraseService.getDefaultStaticPhrases();
+      }
+
       // Batasi jumlah frasa
       if (_sessionPhrases.length > maxPhrases) {
         _sessionPhrases = _sessionPhrases.sublist(0, maxPhrases);
@@ -328,6 +342,15 @@ class StudyProvider with ChangeNotifier {
 
       // Acak urutan frasa
       _sessionPhrases.shuffle();
+
+      // Verifikasi bahwa kita memiliki frasa untuk dipelajari
+      if (_sessionPhrases.isEmpty) {
+        _error =
+            'Tidak ada frasa yang tersedia untuk belajar. Silakan coba lagi nanti.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
 
       _currentPhraseIndex = 0;
       _correctAnswers = 0;
@@ -441,6 +464,12 @@ class StudyProvider with ChangeNotifier {
           categoryId: categoryId,
         );
 
+        // Jika masih kosong, gunakan frasa default statis
+        if (_sessionPhrases.isEmpty) {
+          print("Still no phrases found, using default static phrases");
+          _sessionPhrases = _phraseService.getDefaultStaticPhrases();
+        }
+
         // Batasi jumlah frasa
         if (_sessionPhrases.length > maxPhrases) {
           _sessionPhrases = _sessionPhrases.sublist(0, maxPhrases);
@@ -448,6 +477,15 @@ class StudyProvider with ChangeNotifier {
 
         // Acak urutan frasa
         _sessionPhrases.shuffle();
+      }
+
+      // Verifikasi bahwa kita memiliki frasa untuk dipelajari
+      if (_sessionPhrases.isEmpty) {
+        _error =
+            'Tidak ada frasa yang tersedia untuk belajar. Silakan coba lagi nanti.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
       }
 
       _currentPhraseIndex = 0;
