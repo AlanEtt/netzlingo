@@ -98,7 +98,7 @@ class SettingsService {
       if (userId == 'universal' || userId == 'guest') {
         return await getOrCreateUniversalSettings();
       }
-      
+
       print("Attempting to get settings for user: $userId");
       // Cari pengaturan yang sudah ada
       final documentList = await _databases.listDocuments(
@@ -118,19 +118,20 @@ class SettingsService {
       return await createDefaultSettings(userId);
     } catch (e) {
       print("Error getting settings: $e");
-      
+
       // Jika error adalah permission denied atau unauthorized, coba pengaturan universal
-      if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
+      if (e.toString().contains('user_unauthorized') ||
+          e.toString().contains('401')) {
         print("Permission issue, trying universal settings");
         return await getOrCreateUniversalSettings();
       }
-      
+
       // Coba lagi dengan membuat pengaturan baru dengan strategi berbeda
       try {
         return await _createDefaultSettingsWithoutPermissions(userId);
       } catch (innerError) {
         print("Error creating default settings: $innerError");
-        
+
         // Sebagai fallback, kembalikan objek Settings tanpa menyimpan ke database
         print("Returning fallback settings object");
         return Settings(
@@ -189,9 +190,10 @@ class SettingsService {
       throw e;
     }
   }
-  
+
   // Membuat pengaturan default tanpa permissions (sebagai fallback)
-  Future<Settings> _createDefaultSettingsWithoutPermissions(String userId) async {
+  Future<Settings> _createDefaultSettingsWithoutPermissions(
+      String userId) async {
     try {
       print("Creating default settings WITHOUT permissions for user: $userId");
       final settings = Settings(
@@ -262,7 +264,8 @@ class SettingsService {
       return Settings.fromDocument(document);
     } catch (e) {
       print("Error in updateSettings: $e");
-      return settings.copyWith(updatedAt: DateTime.now()); // Return current settings as fallback
+      return settings.copyWith(
+          updatedAt: DateTime.now()); // Return current settings as fallback
     }
   }
 
@@ -279,7 +282,7 @@ class SettingsService {
       return await updateSettings(updatedSettings);
     } catch (e) {
       print("Error in updateTheme: $e");
-      
+
       // Kembalikan objek settings default sebagai fallback
       return Settings(
         id: 'local_fallback',
@@ -309,7 +312,7 @@ class SettingsService {
       return await updateSettings(updatedSettings);
     } catch (e) {
       print("Error in updateAppLanguage: $e");
-      
+
       // Kembalikan objek settings default sebagai fallback
       return Settings(
         id: 'local_fallback',
@@ -344,13 +347,13 @@ class SettingsService {
       return await updateSettings(updatedSettings);
     } catch (e) {
       print("Error in updateNotificationSettings: $e");
-      
+
       // Kembalikan objek settings default sebagai fallback
       return Settings(
         id: 'local_fallback',
         userId: userId,
         appLanguage: 'id',
-        theme: 'light', 
+        theme: 'light',
         isDarkMode: false,
         enableTTS: true,
         enableNotifications: enableNotifications ?? true,
@@ -374,7 +377,7 @@ class SettingsService {
       return await updateSettings(updatedSettings);
     } catch (e) {
       print("Error in updateDailyGoal: $e");
-      
+
       // Kembalikan objek settings default sebagai fallback
       return Settings(
         id: 'local_fallback',
@@ -405,7 +408,7 @@ class SettingsService {
       return await updateSettings(updatedSettings);
     } catch (e) {
       print("Error in updateDailySessionCount: $e");
-      
+
       // Kembalikan objek settings default sebagai fallback
       return Settings(
         id: 'local_fallback',
@@ -455,7 +458,91 @@ class SettingsService {
       return settings;
     } catch (e) {
       print("Error in resetDailySessionCountIfNeeded: $e");
-      
+
+      // Kembalikan objek settings default sebagai fallback
+      return Settings(
+        id: 'local_fallback',
+        userId: userId,
+        appLanguage: 'id',
+        theme: 'light',
+        isDarkMode: false,
+        enableTTS: true,
+        enableNotifications: true,
+        notificationTime: '20:00',
+        dailyGoal: 10,
+        dailySessionCount: 0,
+        updatedAt: DateTime.now(),
+      );
+    }
+  }
+
+  // Memperbarui pengaturan tertentu dengan nilai baru
+  Future<Settings> updateSetting(
+      String userId, String key, String value) async {
+    try {
+      final settings = await getSettings(userId);
+
+      // Buat map data untuk update
+      Map<String, dynamic> data = {
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // Tambahkan key yang akan diupdate
+      switch (key) {
+        case 'app_language':
+          data['app_language'] = value;
+          break;
+        case 'theme':
+          data['theme'] = value;
+          break;
+        case 'is_dark_mode':
+          data['is_dark_mode'] = value.toLowerCase() == 'true';
+          break;
+        case 'enable_tts':
+          data['enable_tts'] = value.toLowerCase() == 'true';
+          break;
+        case 'enable_notifications':
+          data['enable_notifications'] = value.toLowerCase() == 'true';
+          break;
+        case 'notification_time':
+          data['notification_time'] = value;
+          break;
+        case 'daily_goal':
+          data['daily_goal'] = int.tryParse(value) ?? 10;
+          break;
+        case 'daily_session_count':
+          data['daily_session_count'] = int.tryParse(value) ?? 0;
+          break;
+        case 'remaining_sessions':
+          data['remaining_sessions'] = int.tryParse(value) ?? 10;
+          break;
+        default:
+          // Key tidak dikenali, jangan lakukan update
+          return settings;
+      }
+
+      // Update dokumen
+      try {
+        final document = await _databases.updateDocument(
+          databaseId: AppwriteConstants.databaseId,
+          collectionId: AppwriteConstants.settingsCollection,
+          documentId: settings.id,
+          data: data,
+        );
+
+        return Settings.fromDocument(document);
+      } catch (e) {
+        print("Error updating setting $key: $e");
+
+        // Jika gagal update, kembalikan settings dengan nilai yang diubah secara lokal
+        final Map<String, dynamic> updatedData = {...settings.toMap()};
+        updatedData.addAll(data);
+
+        return Settings.fromMap(updatedData);
+      }
+    } catch (e) {
+      print("Error in updateSetting: $e");
+
       // Kembalikan objek settings default sebagai fallback
       return Settings(
         id: 'local_fallback',

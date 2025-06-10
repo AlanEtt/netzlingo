@@ -11,8 +11,9 @@ import '../../services/tts_service.dart';
 import 'flashcard_screen.dart';
 import 'quiz_screen.dart';
 import 'typing_screen.dart';
+import 'spaced_repetition_screen.dart';
 
-enum StudyMode { flashcard, quiz, typing }
+enum StudyMode { flashcard, quiz, typing, spacedRepetition }
 
 class StudyScreen extends StatefulWidget {
   const StudyScreen({Key? key}) : super(key: key);
@@ -63,37 +64,42 @@ class StudyScreenState extends State<StudyScreen> {
       }
     }
   }
-  
+
   // Pendekatan akses universal yang bekerja untuk semua jenis akun
   Future<void> _initializeUniversalAccess(String userId) async {
     try {
       print("Initializing with universal access approach for user: $userId");
-      
+
       // Inisialisasi provider dengan userId (guest atau user asli)
       try {
-        await Provider.of<StudyProvider>(context, listen: false).initialize(userId);
+        await Provider.of<StudyProvider>(context, listen: false)
+            .initialize(userId);
       } catch (e) {
         print('Error initializing StudyProvider: $e');
         // Jika gagal dengan user ID asli, coba dengan 'universal'
-        await Provider.of<StudyProvider>(context, listen: false).initialize('universal');
+        await Provider.of<StudyProvider>(context, listen: false)
+            .initialize('universal');
       }
-      
-      // Load bahasa 
+
+      // Load bahasa
       try {
-        await Provider.of<LanguageProvider>(context, listen: false).loadLanguages();
+        await Provider.of<LanguageProvider>(context, listen: false)
+            .loadLanguages();
       } catch (e) {
         print('Error loading languages: $e');
         // Langsung lanjutkan meski gagal
       }
-      
+
       // Load kategori
       try {
-        await Provider.of<CategoryProvider>(context, listen: false).loadCategories(userId: userId);
+        await Provider.of<CategoryProvider>(context, listen: false)
+            .loadCategories(userId: userId);
       } catch (e) {
         print('Error loading categories for $userId: $e');
         // Coba dengan kategori default/universal
         try {
-          await Provider.of<CategoryProvider>(context, listen: false).loadCategories(userId: 'universal');
+          await Provider.of<CategoryProvider>(context, listen: false)
+              .loadCategories(userId: 'universal');
         } catch (innerError) {
           print('Error loading universal categories: $innerError');
           // Lanjutkan meski gagal
@@ -121,14 +127,14 @@ class StudyScreenState extends State<StudyScreen> {
 
     try {
       final subscriptionProvider = Provider.of<SubscriptionProvider>(
-      context,
-      listen: false,
-    );
-    final remainingSessions = await _sessionLimitService
+        context,
+        listen: false,
+      );
+      final remainingSessions = await _sessionLimitService
           .getRemainingSessionsToday(subscriptionProvider.isPremium);
 
-    setState(() {
-      _remainingSessions = remainingSessions;
+      setState(() {
+        _remainingSessions = remainingSessions;
       });
     } catch (e) {
       print('Error loading session count: $e');
@@ -137,17 +143,17 @@ class StudyScreenState extends State<StudyScreen> {
       });
     } finally {
       setState(() {
-      _isLoading = false;
-    });
+        _isLoading = false;
+      });
     }
   }
 
   Future<bool> _canStartNewSession() async {
     try {
       final subscriptionProvider = Provider.of<SubscriptionProvider>(
-      context,
-      listen: false,
-    );
+        context,
+        listen: false,
+      );
       return _sessionLimitService
           .canStartNewSession(subscriptionProvider.isPremium);
     } catch (e) {
@@ -173,15 +179,15 @@ class StudyScreenState extends State<StudyScreen> {
         _isLoading = true;
         _error = null;
       });
-      
+
       final studyProvider = Provider.of<StudyProvider>(context, listen: false);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final userId = authProvider.userId;
-      
+
       // Gunakan pendekatan universal untuk semua jenis akun
       bool started = false;
       String? errorMessage;
-      
+
       try {
         // Pendekatan 1: Coba langsung dengan userId
         if (userId.isNotEmpty) {
@@ -202,9 +208,9 @@ class StudyScreenState extends State<StudyScreen> {
       } catch (e) {
         print('Error starting session with standard approach: $e');
         errorMessage = e.toString();
-        
+
         // Pendekatan 2: Jika gagal karena unauthorized, coba dengan universal mode
-        if (errorMessage.contains('user_unauthorized') || 
+        if (errorMessage.contains('user_unauthorized') ||
             errorMessage.contains('401') ||
             errorMessage.contains('permission denied')) {
           print('Permission issue detected, using universal mode');
@@ -217,11 +223,12 @@ class StudyScreenState extends State<StudyScreen> {
       setState(() => _isLoading = false);
 
       if (!started) {
-        String displayError = studyProvider.error ?? errorMessage ?? 'Gagal memulai sesi belajar';
-        
+        String displayError =
+            studyProvider.error ?? errorMessage ?? 'Gagal memulai sesi belajar';
+
         // Tampilkan dialog untuk universal mode
-        if (displayError.contains('user_unauthorized') || 
-            displayError.contains('401') || 
+        if (displayError.contains('user_unauthorized') ||
+            displayError.contains('401') ||
             displayError.contains('permission')) {
           _showUniversalStudyModeDialog(mode);
         } else {
@@ -246,6 +253,9 @@ class StudyScreenState extends State<StudyScreen> {
           break;
         case StudyMode.typing:
           screenToShow = const TypingScreen();
+          break;
+        case StudyMode.spacedRepetition:
+          screenToShow = const SpacedRepetitionScreen();
           break;
       }
 
@@ -308,16 +318,17 @@ class StudyScreenState extends State<StudyScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              
+
               setState(() => _isLoading = true);
-              
+
               // Gunakan ID universal dan mulai sesi
-              final studyProvider = Provider.of<StudyProvider>(context, listen: false);
-              
+              final studyProvider =
+                  Provider.of<StudyProvider>(context, listen: false);
+
               try {
                 // Inisialisasi dengan 'universal' sebagai userId
                 await studyProvider.initialize('universal');
-                
+
                 // Memulai sesi belajar
                 final started = await studyProvider.startNewSession(
                   sessionType: mode.toString(),
@@ -325,9 +336,9 @@ class StudyScreenState extends State<StudyScreen> {
                   categoryId: _selectedCategoryId,
                   phraseCount: _phraseCount,
                 );
-                
+
                 setState(() => _isLoading = false);
-                
+
                 if (started) {
                   // Navigasi ke screen sesuai mode yang dipilih
                   Widget screenToShow;
@@ -341,14 +352,18 @@ class StudyScreenState extends State<StudyScreen> {
                     case StudyMode.typing:
                       screenToShow = const TypingScreen();
                       break;
+                    case StudyMode.spacedRepetition:
+                      screenToShow = const SpacedRepetitionScreen();
+                      break;
                   }
-                  
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => screenToShow),
                   );
                 } else {
-                  String errorMsg = studyProvider.error ?? 'Gagal memulai sesi belajar universal';
+                  String errorMsg = studyProvider.error ??
+                      'Gagal memulai sesi belajar universal';
                   _showErrorSnackbar(errorMsg);
                 }
               } catch (e) {
@@ -372,150 +387,171 @@ class StudyScreenState extends State<StudyScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Belajar'), centerTitle: true),
       body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : _error != null
-          ? _buildErrorView()
-          : Consumer<StudyProvider>(
-        builder: (context, studyProvider, child) {
-          if (studyProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildErrorView()
+              : Consumer<StudyProvider>(
+                  builder: (context, studyProvider, child) {
+                    if (studyProvider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (studyProvider.error != null) {
-                  return _buildStudyProviderError(studyProvider);
-                }
+                    if (studyProvider.error != null) {
+                      return _buildStudyProviderError(studyProvider);
+                    }
 
-          return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Session limit info
-                if (!studyProvider.isPremium) ...[
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.info_outline,
-                                  color: Colors.blue,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                  studyProvider.remainingSessions > 0
-                                      ? 'Anda memiliki ${studyProvider.remainingSessions} sesi belajar tersisa hari ini.'
-                                        : 'Anda telah mencapai batas sesi belajar harian.',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          if (studyProvider.remainingSessions <= 0) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Upgrade ke premium untuk sesi tak terbatas',
-                                  ),
-                                  const SizedBox(width: 8),
-                                  TextButton(
-                                    onPressed: () {
-                                      // Navigasi ke halaman premium
-                                    },
-                                    child: const Text('Upgrade'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Study modes
-                  Text(
-                    'Mode Belajar',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Flashcard mode
-                  _buildStudyModeCard(
-                    context: context,
-                    title: 'Flashcards',
-                    description: 'Pelajari frasa dengan kartu interaktif',
-                    icon: Icons.flip,
-                    onTap: () => _startStudySession(StudyMode.flashcard),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Quiz mode
-                  _buildStudyModeCard(
-                    context: context,
-                    title: 'Kuis',
-                    description: 'Uji pengetahuan Anda dengan pertanyaan acak',
-                    icon: Icons.quiz,
-                    onTap: () => _startStudySession(StudyMode.quiz),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Typing mode
-                  _buildStudyModeCard(
-                    context: context,
-                    title: 'Ketik Jawaban',
-                    description:
-                        'Latih ingatan dengan mengetik terjemahan yang benar',
-                    icon: Icons.keyboard,
-                    onTap: () => _startStudySession(StudyMode.typing),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Study options
-                  Text(
-                    'Pengaturan Latihan',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Card(
-                    child: Padding(
+                    return SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
                       child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Language selection
-                              _buildLanguageSelector(context),
+                          // Session limit info
+                          if (!studyProvider.isPremium) ...[
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline,
+                                          color: Colors.blue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            studyProvider.remainingSessions > 0
+                                                ? 'Anda memiliki ${studyProvider.remainingSessions} sesi belajar tersisa hari ini.'
+                                                : 'Anda telah mencapai batas sesi belajar harian.',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (studyProvider.remainingSessions <=
+                                        0) ...[
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            'Upgrade ke premium untuk sesi tak terbatas',
+                                          ),
+                                          const SizedBox(width: 8),
+                                          TextButton(
+                                            onPressed: () {
+                                              // Navigasi ke halaman premium
+                                            },
+                                            child: const Text('Upgrade'),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // Study modes
+                          Text(
+                            'Mode Belajar',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
                           const SizedBox(height: 16),
 
-                          // Category selection
-                              _buildCategorySelector(context),
-                              const SizedBox(height: 16),
-
-                              // Phrase count selection
-                              _buildPhraseCountSelector(context),
-                            ],
+                          // Flashcard mode
+                          _buildStudyModeCard(
+                            context: context,
+                            title: 'Flashcards',
+                            description:
+                                'Pelajari frasa dengan kartu interaktif',
+                            icon: Icons.flip,
+                            onTap: () =>
+                                _startStudySession(StudyMode.flashcard),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+
+                          // Quiz mode
+                          _buildStudyModeCard(
+                            context: context,
+                            title: 'Kuis',
+                            description:
+                                'Uji pengetahuan Anda dengan pertanyaan acak',
+                            icon: Icons.quiz,
+                            onTap: () => _startStudySession(StudyMode.quiz),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Typing mode
+                          _buildStudyModeCard(
+                            context: context,
+                            title: 'Ketik Jawaban',
+                            description:
+                                'Latih ingatan dengan mengetik terjemahan yang benar',
+                            icon: Icons.keyboard,
+                            onTap: () => _startStudySession(StudyMode.typing),
+                          ),
+
+                          // Spaced Repetition mode
+                          _buildStudyModeCard(
+                            context: context,
+                            title: 'Pengulangan',
+                            description:
+                                'Latihan pengulangan untuk meningkatkan ingatan',
+                            icon: Icons.repeat,
+                            onTap: () =>
+                                _startStudySession(StudyMode.spacedRepetition),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Study options
+                          Text(
+                            'Pengaturan Latihan',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Language selection
+                                  _buildLanguageSelector(context),
+                                  const SizedBox(height: 16),
+
+                                  // Category selection
+                                  _buildCategorySelector(context),
+                                  const SizedBox(height: 16),
+
+                                  // Phrase count selection
+                                  _buildPhraseCountSelector(context),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
     );
   }
 
@@ -526,7 +562,7 @@ class StudyScreenState extends State<StudyScreen> {
         children: [
           const Icon(Icons.error_outline, size: 48, color: Colors.red),
           const SizedBox(height: 16),
-          const Text('Terjadi kesalahan', 
+          const Text('Terjadi kesalahan',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Padding(
@@ -540,39 +576,36 @@ class StudyScreenState extends State<StudyScreen> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
-                                  setState(() {
+              setState(() {
                 _error = null;
                 _isLoading = true;
-                                  });
+              });
               _initializeProviders();
               _loadRemainingSessionCount();
-                                },
+            },
             child: const Text('Coba Lagi'),
-                              ),
-                            ],
-                          ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildStudyProviderError(StudyProvider provider) {
     // Cek jika error berkaitan dengan unauthorized
-    bool isAuthError = provider.error != null && 
-                      (provider.error!.contains('user_unauthorized') || 
-                       provider.error!.contains('401'));
-    
+    bool isAuthError = provider.error != null &&
+        (provider.error!.contains('user_unauthorized') ||
+            provider.error!.contains('401'));
+
     String displayError = isAuthError
         ? 'Anda tidak memiliki izin yang diperlukan untuk mengakses fitur belajar. Silakan coba masuk kembali atau periksa koneksi internet Anda.'
         : provider.error!;
-    
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            isAuthError ? Icons.lock : Icons.error_outline, 
-            size: 48, 
-            color: Colors.red
-          ),
+          Icon(isAuthError ? Icons.lock : Icons.error_outline,
+              size: 48, color: Colors.red),
           const SizedBox(height: 16),
           const Text('Kesalahan Provider Belajar',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -588,10 +621,11 @@ class StudyScreenState extends State<StudyScreen> {
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+            children: [
               ElevatedButton(
                 onPressed: () {
-                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
                   provider.initialize(authProvider.userId);
                   _loadRemainingSessionCount();
                 },
@@ -601,7 +635,8 @@ class StudyScreenState extends State<StudyScreen> {
                 const SizedBox(width: 16),
                 ElevatedButton(
                   onPressed: () async {
-                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    final authProvider =
+                        Provider.of<AuthProvider>(context, listen: false);
                     try {
                       await authProvider.refreshSession();
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -635,9 +670,10 @@ class StudyScreenState extends State<StudyScreen> {
               onPressed: () async {
                 // Logout dan navigasi ke login screen
                 try {
-                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
                   await authProvider.logout();
-                  
+
                   // Navigasi ke login screen
                   // Perlu disesuaikan dengan navigasi aplikasi
                   Navigator.pushReplacementNamed(context, '/login');
@@ -651,10 +687,10 @@ class StudyScreenState extends State<StudyScreen> {
                 }
               },
               child: const Text('Login Ulang'),
-                  ),
-                ],
-              ],
             ),
+          ],
+        ],
+      ),
     );
   }
 

@@ -1,151 +1,446 @@
+import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/models.dart';
 import 'dart:math';
-import 'package:intl/intl.dart';
 import '../models/phrase.dart';
-import '../services/database_service.dart';
+import '../models/review_history.dart';
+import '../config/appwrite_constants.dart';
+import 'appwrite_service.dart';
+import 'review_history_service.dart';
+import 'phrase_service.dart';
 
+/// Service untuk mengelola algoritma spaced repetition
+/// Mengimplementasikan algoritma SuperMemo-2 (SM-2) dengan beberapa modifikasi
 class SpacedRepetitionService {
-  final DatabaseService _databaseService = DatabaseService();
+  final AppwriteService _appwriteService;
+  final ReviewHistoryService _reviewHistoryService;
+  final PhraseService _phraseService;
 
-  // Implementasi algoritma SM-2 (Spaced Repetition)
-  // Reference: https://en.wikipedia.org/wiki/SuperMemo#Algorithm_SM-2
+  SpacedRepetitionService(this._appwriteService)
+      : _reviewHistoryService = ReviewHistoryService(_appwriteService),
+        _phraseService = PhraseService(_appwriteService);
 
-  // Faktor default untuk algorithm
-  static const double _initialEaseFactor = 2.5;
-  static const int _initialInterval = 1; // dalam hari
-
-  // Kalkulasi interval berdasarkan performance dan tingkat kesulitan
-  Future<Map<String, dynamic>> calculateNextReview(
-    int phraseId,
-    bool wasCorrect,
-    int responseQuality, // 0-5, dimana 0 = sangat sulit, 5 = sangat mudah
-  ) async {
-    // Validasi nilai responseQuality
-    final quality = max(0, min(5, responseQuality));
-
-    // Default untuk item baru
-    double easeFactor = _initialEaseFactor;
-    int interval = _initialInterval;
-
-    // Cek apakah ada riwayat review sebelumnya
-    final db = await _databaseService.database;
-    final reviews = await db.query(
-      'review_history',
-      where: 'phrase_id = ?',
-      whereArgs: [phraseId],
-      orderBy: 'review_date DESC',
-      limit: 1,
-    );
-
-    // Jika ada riwayat, gunakan nilai sebelumnya
-    if (reviews.isNotEmpty) {
-      easeFactor = reviews.first['ease_factor'] as double;
-      interval = reviews.first['interval'] as int;
-    }
-
-    // Jika jawaban salah, reset interval
-    if (!wasCorrect || quality < 3) {
-      interval = 1; // Ulang besok
-    } else {
-      // Rumus untuk algoritma SM-2:
-      // EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-      easeFactor =
-          easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-
-      // Batas minimum untuk EF adalah 1.3
-      easeFactor = max(1.3, easeFactor);
-
-      // Hitung interval baru:
-      if (interval == 1) {
-        interval = 1; // First interval
-      } else if (interval == 2) {
-        interval = 6; // Second interval
-      } else {
-        interval = (interval * easeFactor).round(); // Subsequent intervals
-      }
-    }
-
-    return {
-      'phrase_id': phraseId,
-      'was_correct': wasCorrect,
-      'ease_factor': easeFactor,
-      'interval': interval,
-      'next_review_date': DateTime.now().add(Duration(days: interval)),
-    };
-  }
-
-  // Mendapatkan daftar frasa untuk ditinjau hari ini
-  Future<List<Phrase>> getPhrasesToReview({
-    int? languageId,
-    int? categoryId,
-    int limit = 10,
-  }) async {
-    final db = await _databaseService.database;
-    final now = DateTime.now();
-    final today = DateFormat('yyyy-MM-dd').format(now);
-
-    // Query untuk mendapatkan frasa yang perlu direview
-    String query = '''
-      SELECT p.* FROM phrases p
-      LEFT JOIN (
-        SELECT phrase_id, MAX(review_date) as last_review, 
-               interval, ease_factor
-        FROM review_history
-        GROUP BY phrase_id
-      ) r ON p.id = r.phrase_id
-      WHERE 
-        r.phrase_id IS NULL OR
-        date(r.last_review, '+' || r.interval || ' day') <= date('$today')
-    ''';
-
-    List<dynamic> args = [];
-
-    // Tambahkan filter bahasa jika ada
-    if (languageId != null) {
-      query += ' AND p.language_id = ?';
-      args.add(languageId);
-    }
-
-    // Tambahkan filter kategori jika ada
-    if (categoryId != null) {
-      query += ' AND p.category_id = ?';
-      args.add(categoryId);
-    }
-
-    // Tambahkan batasan jumlah dan urutan acak
-    query += ' ORDER BY RANDOM() LIMIT ?';
-    args.add(limit);
-
-    final List<Map<String, dynamic>> maps = await db.rawQuery(query, args);
-
-    return List.generate(maps.length, (i) {
-      return Phrase.fromMap(maps[i]);
-    });
-  }
-
-  // Memperbarui riwayat review
-  Future<void> updateReviewHistory(int phraseId, bool wasCorrect,
-      {int responseQuality = 3}) async {
+  /// Mendapatkan frasa yang perlu direview hari ini
+  Future<List<Phrase>> getPhrasesToReviewToday(String userId) async {
     try {
-      final db = await _databaseService.database;
+      // Dapatkan ID frasa yang perlu direview
+      final phraseIds =
+          await _reviewHistoryService.getPhrasesToReviewToday(userId);
 
-      // Hitung interval berikutnya
-      final nextReview = await calculateNextReview(
-        phraseId,
-        wasCorrect,
-        responseQuality,
+      if (phraseIds.isEmpty) {
+        return [];
+      }
+
+      // Dapatkan detail frasa
+      List<Phrase> phrases = [];
+      for (var id in phraseIds) {
+        try {
+          final phrase = await _phraseService.getPhrase(id);
+          phrases.add(phrase);
+        } catch (e) {
+          print("Error getting phrase $id: $e");
+          // Lanjutkan dengan frasa berikutnya
+        }
+      }
+
+      return phrases;
+    } catch (e) {
+      print("Error getting phrases to review: $e");
+      return [];
+    }
+  }
+
+  /// Mendapatkan frasa untuk sesi review dengan prioritas
+  Future<List<Phrase>> getPhrasesForReviewSession(
+    String userId, {
+    int limit = 10,
+    String? languageId,
+    String? categoryId,
+  }) async {
+    try {
+      // Dapatkan frasa yang harus direview hari ini
+      final dueTodayPhrases = await getPhrasesToReviewToday(userId);
+
+      // Filter berdasarkan bahasa dan kategori jika diperlukan
+      List<Phrase> filteredPhrases = dueTodayPhrases;
+      if (languageId != null) {
+        filteredPhrases =
+            filteredPhrases.where((p) => p.languageId == languageId).toList();
+      }
+
+      if (categoryId != null) {
+        filteredPhrases =
+            filteredPhrases.where((p) => p.categoryId == categoryId).toList();
+      }
+
+      // Jika jumlah frasa kurang dari limit, tambahkan frasa baru
+      if (filteredPhrases.length < limit) {
+        final additionalCount = limit - filteredPhrases.length;
+
+        // Dapatkan frasa yang belum pernah direview
+        final additionalPhrases = await _getUnreviewedPhrases(
+          userId,
+          languageId: languageId,
+          categoryId: categoryId,
+          limit: additionalCount,
+          excludeIds: filteredPhrases.map((p) => p.id).toList(),
+        );
+
+        filteredPhrases.addAll(additionalPhrases);
+      }
+
+      // Jika masih kurang, tambahkan frasa yang pernah direview tapi tidak jatuh tempo hari ini
+      if (filteredPhrases.length < limit) {
+        final additionalCount = limit - filteredPhrases.length;
+
+        final additionalPhrases = await _getReviewedButNotDuePhrases(
+          userId,
+          languageId: languageId,
+          categoryId: categoryId,
+          limit: additionalCount,
+          excludeIds: filteredPhrases.map((p) => p.id).toList(),
+        );
+
+        filteredPhrases.addAll(additionalPhrases);
+      }
+
+      // Batasi jumlah frasa
+      if (filteredPhrases.length > limit) {
+        filteredPhrases = filteredPhrases.sublist(0, limit);
+      }
+
+      // Acak urutan frasa
+      filteredPhrases.shuffle();
+
+      return filteredPhrases;
+    } catch (e) {
+      print("Error getting phrases for review session: $e");
+      return [];
+    }
+  }
+
+  /// Mendapatkan frasa yang belum pernah direview
+  Future<List<Phrase>> _getUnreviewedPhrases(
+    String userId, {
+    String? languageId,
+    String? categoryId,
+    int limit = 10,
+    List<String> excludeIds = const [],
+  }) async {
+    try {
+      // Dapatkan semua frasa pengguna
+      final allPhrases = await _phraseService.getPhrases(
+        userId: userId,
+        languageId: languageId,
+        categoryId: categoryId,
       );
 
-      // Tambahkan entry baru di review_history
-      await db.insert('review_history', {
-        'phrase_id': phraseId,
-        'review_date': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-        'was_correct': wasCorrect ? 1 : 0,
-        'ease_factor': nextReview['ease_factor'],
-        'interval': nextReview['interval'],
-      });
+      // Filter frasa yang belum ada di history review
+      List<Phrase> unreviewedPhrases = [];
+
+      for (var phrase in allPhrases) {
+        if (excludeIds.contains(phrase.id)) {
+          continue;
+        }
+
+        final history = await _reviewHistoryService.getReviewHistoryForPhrase(
+          phrase.id,
+          userId,
+        );
+
+        if (history.isEmpty) {
+          unreviewedPhrases.add(phrase);
+        }
+
+        // Batasi jumlah query untuk performa
+        if (unreviewedPhrases.length >= limit) {
+          break;
+        }
+      }
+
+      // Batasi jumlah frasa
+      if (unreviewedPhrases.length > limit) {
+        unreviewedPhrases = unreviewedPhrases.sublist(0, limit);
+      }
+
+      return unreviewedPhrases;
     } catch (e) {
-      print('Error updating review history: $e');
-      rethrow;
+      print("Error getting unreviewed phrases: $e");
+      return [];
+    }
+  }
+
+  /// Mendapatkan frasa yang pernah direview tapi tidak jatuh tempo hari ini
+  Future<List<Phrase>> _getReviewedButNotDuePhrases(
+    String userId, {
+    String? languageId,
+    String? categoryId,
+    int limit = 10,
+    List<String> excludeIds = const [],
+  }) async {
+    try {
+      // Dapatkan semua frasa pengguna
+      final allPhrases = await _phraseService.getPhrases(
+        userId: userId,
+        languageId: languageId,
+        categoryId: categoryId,
+      );
+
+      // Filter frasa yang sudah direview tapi tidak jatuh tempo hari ini
+      List<Phrase> reviewedPhrases = [];
+
+      for (var phrase in allPhrases) {
+        if (excludeIds.contains(phrase.id)) {
+          continue;
+        }
+
+        final latestReview =
+            await _reviewHistoryService.getLatestReviewForPhrase(
+          phrase.id,
+          userId,
+        );
+
+        if (latestReview != null) {
+          reviewedPhrases.add(phrase);
+        }
+
+        // Batasi jumlah query untuk performa
+        if (reviewedPhrases.length >= limit) {
+          break;
+        }
+      }
+
+      // Dapatkan ease factor untuk setiap frasa terlebih dahulu
+      Map<String, double> phraseEaseFactors = {};
+      for (var phrase in reviewedPhrases) {
+        final latestReview =
+            await _reviewHistoryService.getLatestReviewForPhrase(
+          phrase.id,
+          userId,
+        );
+        phraseEaseFactors[phrase.id] = latestReview?.easeFactor ?? 2.5;
+      }
+
+      // Urutkan berdasarkan ease factor (prioritaskan yang lebih sulit)
+      reviewedPhrases.sort((a, b) {
+        final easeFactorA = phraseEaseFactors[a.id] ?? 2.5;
+        final easeFactorB = phraseEaseFactors[b.id] ?? 2.5;
+        return easeFactorA.compareTo(easeFactorB);
+      });
+
+      // Batasi jumlah frasa
+      if (reviewedPhrases.length > limit) {
+        reviewedPhrases = reviewedPhrases.sublist(0, limit);
+      }
+
+      return reviewedPhrases;
+    } catch (e) {
+      print("Error getting reviewed but not due phrases: $e");
+      return [];
+    }
+  }
+
+  /// Memproses jawaban dan menghitung interval berikutnya
+  Future<Map<String, dynamic>> processAnswer(
+    String phraseId,
+    String userId,
+    int quality,
+  ) async {
+    try {
+      // Dapatkan riwayat review terbaru
+      final latestReview = await _reviewHistoryService.getLatestReviewForPhrase(
+        phraseId,
+        userId,
+      );
+
+      // Nilai default jika belum ada review sebelumnya
+      double easeFactor = 2.5;
+      int interval = 1;
+      int repetitions = 0;
+
+      // Jika sudah ada review sebelumnya, gunakan nilai tersebut
+      if (latestReview != null) {
+        easeFactor = latestReview.easeFactor;
+        interval = latestReview.interval;
+        // Repetitions tidak disimpan di model, jadi kita hitung dari history
+        final history = await _reviewHistoryService.getReviewHistoryForPhrase(
+          phraseId,
+          userId,
+        );
+        repetitions = history.length;
+      }
+
+      // Konversi wasCorrect menjadi quality (0-5)
+      // 0: complete blackout, 5: perfect recall
+      bool wasCorrect = quality >= 3; // 3 atau lebih dianggap benar
+
+      // Hitung nilai baru berdasarkan algoritma SM-2
+      if (quality < 3) {
+        // Jawaban salah, reset interval dan repetitions
+        repetitions = 0;
+        interval = 1;
+      } else {
+        // Jawaban benar
+        repetitions++;
+
+        if (repetitions == 1) {
+          interval = 1;
+        } else if (repetitions == 2) {
+          interval = 6;
+        } else {
+          interval = (interval * easeFactor).round();
+        }
+      }
+
+      // Hitung ease factor baru
+      easeFactor = max(1.3,
+          easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)));
+
+      // Hitung tanggal review berikutnya
+      final nextReviewDate = DateTime.now().add(Duration(days: interval));
+
+      // Simpan review history baru
+      final reviewHistory = ReviewHistory(
+        id: '',
+        phraseId: phraseId,
+        userId: userId,
+        reviewDate: DateTime.now(),
+        wasCorrect: wasCorrect,
+        easeFactor: easeFactor,
+        interval: interval,
+      );
+
+      await _reviewHistoryService.addReviewHistory(reviewHistory);
+
+      return {
+        'ease_factor': easeFactor,
+        'interval': interval,
+        'next_review_date': nextReviewDate,
+        'repetitions': repetitions,
+        'was_correct': wasCorrect,
+      };
+    } catch (e) {
+      print("Error processing answer: $e");
+      // Return default values if there's an error
+      return {
+        'ease_factor': 2.5,
+        'interval': 1,
+        'next_review_date': DateTime.now().add(Duration(days: 1)),
+        'repetitions': 0,
+        'was_correct': false,
+      };
+    }
+  }
+
+  /// Mendapatkan statistik review untuk frasa tertentu
+  Future<Map<String, dynamic>> getPhraseReviewStats(
+    String phraseId,
+    String userId,
+  ) async {
+    try {
+      final history = await _reviewHistoryService.getReviewHistoryForPhrase(
+        phraseId,
+        userId,
+      );
+
+      if (history.isEmpty) {
+        return {
+          'total_reviews': 0,
+          'correct_reviews': 0,
+          'accuracy': 0.0,
+          'last_review_date': null,
+          'next_review_date': null,
+          'current_interval': 0,
+          'ease_factor': 2.5,
+        };
+      }
+
+      // Hitung statistik
+      int totalReviews = history.length;
+      int correctReviews = history.where((r) => r.wasCorrect).length;
+      double accuracy =
+          totalReviews > 0 ? correctReviews / totalReviews * 100 : 0.0;
+
+      // Dapatkan review terakhir
+      final latestReview = history.first; // Sudah diurutkan descending
+
+      // Hitung tanggal review berikutnya
+      final nextReviewDate = latestReview.reviewDate.add(
+        Duration(days: latestReview.interval),
+      );
+
+      return {
+        'total_reviews': totalReviews,
+        'correct_reviews': correctReviews,
+        'accuracy': accuracy,
+        'last_review_date': latestReview.reviewDate,
+        'next_review_date': nextReviewDate,
+        'current_interval': latestReview.interval,
+        'ease_factor': latestReview.easeFactor,
+      };
+    } catch (e) {
+      print("Error getting phrase review stats: $e");
+      return {
+        'total_reviews': 0,
+        'correct_reviews': 0,
+        'accuracy': 0.0,
+        'last_review_date': null,
+        'next_review_date': null,
+        'current_interval': 0,
+        'ease_factor': 2.5,
+      };
+    }
+  }
+
+  /// Mendapatkan statistik review keseluruhan untuk pengguna
+  Future<Map<String, dynamic>> getUserReviewStats(String userId) async {
+    try {
+      // Dapatkan semua frasa pengguna
+      final phrases = await _phraseService.getPhrases(userId: userId);
+
+      int totalReviews = 0;
+      int correctReviews = 0;
+      int phrasesReviewed = 0;
+      int phrasesLearned = 0; // Frasa dengan interval > 30 hari
+
+      for (var phrase in phrases) {
+        final stats = await getPhraseReviewStats(phrase.id, userId);
+
+        totalReviews += stats['total_reviews'] as int;
+        correctReviews += stats['correct_reviews'] as int;
+
+        if (stats['total_reviews'] > 0) {
+          phrasesReviewed++;
+        }
+
+        if (stats['current_interval'] > 30) {
+          phrasesLearned++;
+        }
+      }
+
+      double accuracy =
+          totalReviews > 0 ? correctReviews / totalReviews * 100 : 0.0;
+
+      return {
+        'total_reviews': totalReviews,
+        'correct_reviews': correctReviews,
+        'accuracy': accuracy,
+        'phrases_reviewed': phrasesReviewed,
+        'phrases_learned': phrasesLearned,
+        'total_phrases': phrases.length,
+        'progress_percentage':
+            phrases.isEmpty ? 0.0 : (phrasesLearned / phrases.length * 100),
+      };
+    } catch (e) {
+      print("Error getting user review stats: $e");
+      return {
+        'total_reviews': 0,
+        'correct_reviews': 0,
+        'accuracy': 0.0,
+        'phrases_reviewed': 0,
+        'phrases_learned': 0,
+        'total_phrases': 0,
+        'progress_percentage': 0.0,
+      };
     }
   }
 }

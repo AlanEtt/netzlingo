@@ -34,15 +34,15 @@ Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [04-06-202
 ## Iterasi 2: Sistem Pembelajaran & Kategori (Estimasi: 2 Minggu)
 
 - Total Tasks: 9
-- Tasks Selesai: 4
-- Progress Iterasi: 44%
+- Tasks Selesai: 7
+- Progress Iterasi: 78%
   - ✅ Implementasi Kategori & Tag untuk Frasa
   - ✅ Integrasi Kategori pada Form Frasa
   - ✅ Implementasi Akses Universal untuk Tab Belajar (NEW)
   - ✅ Mode Latihan: Flashcard
-  - 🟡 Mode Latihan: Quiz (Sedang dikerjakan)
-  - 🟡 Mode Latihan: Typing (Sedang dikerjakan)
-  - ⬜ Implementasi Algoritma Spaced Repetition
+  - ✅ Mode Latihan: Quiz
+  - ✅ Mode Latihan: Typing
+  - ✅ Implementasi Algoritma Spaced Repetition
   - ⬜ Pelacakan Progress Belajar
   - ⬜ Implementasi Pencarian & Filter Lanjutan
 
@@ -123,7 +123,7 @@ gantt
 > **Status Progress Saat Ini:**
 > - Pra-Iterasi: ✅ Selesai (100%)
 > - Iterasi 1 (Autentikasi & Struktur Dasar): ✅ Selesai (100%)
-> - Iterasi 2 (Sistem Pembelajaran & Kategori): 🟡 Sedang Berjalan (44%)
+> - Iterasi 2 (Sistem Pembelajaran & Kategori): 🟡 Sedang Berjalan (78%)
 
 ```mermaid
 flowchart TD
@@ -442,7 +442,7 @@ erDiagram
 - Backup & restore data ke cloud
 - **NEW: Implementasi mode akses universal untuk memastikan akses fitur Belajar oleh semua jenis akun**
 
-## Revisi dan Perbaikan yang Telah Dilakukan (Updated: 04-06-2025)
+## Revisi dan Perbaikan yang Telah Dilakukan (Updated: 06-06-2025)
 
 1. **Implementasi Akses Universal**:
    - Menambahkan mode pembelajaran universal yang berfungsi untuk semua jenis akun
@@ -458,27 +458,48 @@ erDiagram
    - Membuat dokumentasi appwrite_configuration.md untuk panduan pengaturan izin
    - Menambahkan troubleshooting tips untuk masalah umum
 
-## Rencana Pengerjaan Berikutnya (05-06-2025)
+4. **Penyempurnaan Mode Quiz**:
+   - Implementasi animasi transisi antar pertanyaan dengan FadeTransition
+   - Penambahan indikator visual untuk jawaban benar/salah
+   - Tampilan skor dalam bentuk grafis dengan CircularProgressIndicator
+   - Penambahan dialog bantuan untuk instruksi penggunaan
+   - UI yang lebih responsif dan menarik dengan tema yang konsisten
 
-1. **Penyempurnaan Mode Pembelajaran**:
-   - Menyelesaikan implementasi Mode Quiz dengan UI yang lebih menarik
-   - Mengembangkan Mode Typing dengan validasi jawaban yang lebih baik
-   - Integrasi sistem scoring yang konsisten
+5. **Penyempurnaan Mode Typing**:
+   - Implementasi sistem petunjuk (hint) untuk membantu pengguna
+   - Penambahan validasi jawaban dengan toleransi typo menggunakan algoritma Levenshtein
+   - Feedback visual yang lebih jelas untuk jawaban benar/salah
+   - Integrasi dengan Text-to-Speech untuk pengucapan frasa
+   - Animasi transisi yang lebih halus antar pertanyaan
 
-2. **Algoritma Spaced Repetition**:
-   - Melengkapi implementasi algoritma SuperMemo untuk spaced repetition
-   - Sistem perhitungan interval & ease factor yang adaptif
-   - Optimasi alur review untuk efisiensi pembelajaran
+6. **Implementasi Algoritma Spaced Repetition**:
+   - Pengembangan algoritma SuperMemo-2 (SM-2) untuk pengaturan interval pengulangan
+   - Sistem penilaian kualitas ingatan dengan skala 0-5
+   - Perhitungan otomatis interval dan ease factor berdasarkan performa pengguna
+   - Implementasi UI untuk mode latihan Spaced Repetition dengan animasi transisi
+   - Integrasi dengan sistem review history untuk pelacakan progres jangka panjang
 
-3. **Pelacakan Progress**:
+## Rencana Pengerjaan Berikutnya (07-06-2025)
+
+1. **Pelacakan Progress Belajar**:
    - Dashboard kemajuan belajar dengan metrik kunci (completion rate, retention)
    - Visualisasi data belajar dengan grafik dan chart
    - Sistem streak dan reward untuk memotivasi konsistensi
 
-4. **Optimasi UI/UX**:
-   - Penyempurnaan tampilan kartu belajar dengan animasi yang lebih responsif
-   - Desain feedback visual yang lebih intuitif saat menjawab benar/salah
-   - Konsistensi UI di seluruh mode pembelajaran
+2. **Implementasi Pencarian & Filter Lanjutan**:
+   - Fitur pencarian frasa dengan filter multi-kriteria
+   - Filter berdasarkan kategori, bahasa, dan tag
+   - Sorting dan grouping frasa untuk pengalaman pengguna yang lebih baik
+
+3. **Persiapan Fitur Premium**:
+   - Implementasi batasan 10 sesi untuk user free
+   - Desain UI untuk subscription model
+   - Persiapan integrasi pembayaran
+
+4. **Optimasi Performa & Stabilitas**:
+   - Optimasi query database untuk mengurangi latency
+   - Implementasi caching untuk data yang sering diakses
+   - Perbaikan error handling dan fallback mechanism
 
 ## Struktur AppWrite yang Direvisi
 
@@ -598,79 +619,4 @@ universalPermissions.add(Permission.update(Role.any()));
 ```
 
 ### Fallback Data Universal
-```dart
-// Implementasi getPublicPhrases dengan fallback bertingkat
-Future<List<Phrase>> getPublicPhrases({
-  String? languageId,
-  String? categoryId,
-  int limit = 20,
-}) async {
-  try {
-    print("Getting public phrases for all users");
-    List<String> queries = [];
-    
-    // Pendekatan permisif - coba cari frasa universal dulu
-    queries.add(Query.equal('user_id', 'universal'));
-    
-    // Filter tambahan jika diperlukan
-    if (languageId != null) {
-      queries.add(Query.equal('language_id', languageId));
-    }
-    
-    // Batasi jumlah frasa
-    queries.add(Query.limit(limit));
-
-    final documentList = await _databases.listDocuments(
-      databaseId: AppwriteConstants.databaseId,
-      collectionId: AppwriteConstants.phrasesCollection,
-      queries: queries,
-    );
-    
-    List<Phrase> phrases = documentList.documents
-        .map((doc) => Phrase.fromDocument(doc))
-        .toList();
-    
-    // Jika tidak menemukan frasa universal, coba cari frasa publik
-    if (phrases.isEmpty) {
-      print("No universal phrases found, trying public phrases");
-      queries = [Query.equal('is_public', true)];
-      
-      // [filter lanjutan...]
-      
-      final publicDocuments = await _databases.listDocuments(
-        // [parameters...]
-      );
-      
-      phrases = publicDocuments.documents
-          .map((doc) => Phrase.fromDocument(doc))
-          .toList();
-    }
-    
-    // Jika masih tidak menemukan frasa, gunakan frasa statis
-    if (phrases.isEmpty) {
-      print("No public phrases found in database, using static fallback");
-      return getDefaultStaticPhrases();
-    }
-    
-    return phrases;
-  } catch (e) {
-    print("Error getting public phrases: $e");
-    // Jika gagal, kembalikan frasa default statis
-    return getDefaultStaticPhrases();
-  }
-}
 ```
-
-## 11. Milestone Penting Revisi
-
-| Milestone | Indikator Keberhasilan | Estimasi |
-|-----------|------------------------|----------|
-| AppWrite Integration | Konfigurasi AppWrite dan Auth berfungsi | Minggu 2 |
-| User Authentication | Register, Login, Profile berfungsi | Minggu 3 |
-| Data Sync | Sinkronisasi data antar perangkat berfungsi | Minggu 5 |
-| Universal Access | Akses fitur Belajar tanpa login berfungsi | Minggu 5 (✅ DONE) |
-| Premium Features | Subscription dan pembayaran berfungsi | Minggu 7 |
-| Push Notifications | Notifikasi pengingat belajar berfungsi | Minggu 9 |
-| UI/UX Final | Semua antarmuka dipoles dan responsif | Minggu 11 |
-| Testing Selesai | Semua bug utama teridentifikasi dan diperbaiki | Minggu 14 |
-| MVP Ready | Aplikasi siap untuk rilis awal | Minggu 16 |

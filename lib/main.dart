@@ -106,6 +106,10 @@ class _NetzLingoAppState extends State<NetzLingoApp> {
               Locale('en', 'US'), // English
             ],
             home: const SplashScreen(),
+            routes: {
+              '/login': (context) => const LoginScreen(),
+              '/home': (context) => const HomeScreen(),
+            },
             debugShowCheckedModeBanner: false,
           );
         },
@@ -280,10 +284,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    final authProvider = Provider.of<AuthProvider>(context);
-
-    return authProvider.isAuthenticated
-        ? const HomeScreen()
-        : const LoginScreen();
+    // Gunakan Consumer untuk memastikan UI diperbarui ketika status autentikasi berubah
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        print("AuthWrapper: isAuthenticated = ${authProvider.isAuthenticated}");
+        return authProvider.isAuthenticated
+            ? const HomeScreen()
+            : const LoginScreen();
+      },
+    );
   }
 }

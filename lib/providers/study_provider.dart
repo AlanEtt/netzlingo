@@ -5,6 +5,7 @@ import '../models/review_history.dart';
 import '../services/study_session_service.dart';
 import '../services/phrase_service.dart';
 import '../services/review_history_service.dart';
+import '../services/spaced_repetition_service.dart';
 import '../services/subscription_service.dart';
 import '../services/settings_service.dart';
 import '../services/appwrite_service.dart';
@@ -19,6 +20,8 @@ class StudyProvider with ChangeNotifier {
   final SubscriptionService _subscriptionService =
       SubscriptionService(AppwriteService());
   final SettingsService _settingsService = SettingsService(AppwriteService());
+  final SpacedRepetitionService _spacedRepetitionService =
+      SpacedRepetitionService(AppwriteService());
 
   List<Phrase> _sessionPhrases = [];
   int _currentPhraseIndex = 0;
@@ -69,7 +72,7 @@ class StudyProvider with ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       // Cek status premium untuk user login
       _isPremium = await _subscriptionService.hasPremiumSubscription(userId);
 
@@ -85,9 +88,10 @@ class StudyProvider with ChangeNotifier {
     } catch (e) {
       print('Error in initialize: $e');
       _error = e.toString();
-      
+
       // Jika error berkaitan dengan izin, aktifkan mode universal
-      if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
+      if (e.toString().contains('user_unauthorized') ||
+          e.toString().contains('401')) {
         print('Activating universal mode due to permission error');
         _isUniversalMode = true;
         _isPremium = false;
@@ -107,306 +111,44 @@ class StudyProvider with ChangeNotifier {
     String? categoryId,
     int phraseCount = 10,
   }) async {
-    if (_userId == null) {
-      _error = 'User ID tidak ditemukan. Silakan login terlebih dahulu.';
-      return false;
-    }
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
     try {
-      // Reset state
-      _currentPhraseIndex = 0;
-      _correctAnswers = 0;
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
-      // Untuk mode universal, langsung gunakan frasa-frasa publik tanpa cek sesi
-      if (_isUniversalMode) {
-        print("Universal mode active - using public phrases");
-        try {
-          final publicPhrases = await _phraseService.getPublicPhrases(
-            languageId: languageId,
-            categoryId: categoryId,
-            limit: phraseCount * 2,
-          );
-          
-          if (publicPhrases.isEmpty) {
-            // Jika tidak ada frasa publik di database, gunakan frasa statis
-            print("No public phrases found in database, using static phrases");
-            _sessionPhrases = _phraseService.getDefaultStaticPhrases();
-            if (_sessionPhrases.length > phraseCount) {
-              _sessionPhrases = _sessionPhrases.sublist(0, phraseCount);
-            }
-          } else {
-            // Gunakan frasa publik dari database
-            publicPhrases.shuffle();
-            _sessionPhrases = publicPhrases.take(phraseCount).toList();
-          }
-          
-          // Buat sesi universal
-          _currentSession = await _studySessionService.startUniversalStudySession(
-            sessionType: sessionType,
-            languageId: languageId,
-            categoryId: categoryId,
-          );
-          
-          _isLoading = false;
-          notifyListeners();
-          return true;
-        } catch (e) {
-          print("Error in universal mode: $e");
-          // Fallback ke static phrases
-          _sessionPhrases = _phraseService.getDefaultStaticPhrases();
-          if (_sessionPhrases.length > phraseCount) {
-            _sessionPhrases = _sessionPhrases.sublist(0, phraseCount);
-          }
-          
-          // Gunakan sesi lokal
-          _currentSession = StudySession(
-            id: 'local_universal_${DateTime.now().millisecondsSinceEpoch}',
-            userId: 'universal',
-            startTime: DateTime.now(),
-            endTime: null,
-            totalPhrases: _sessionPhrases.length,
-            correctAnswers: 0,
-            sessionType: sessionType,
-            languageId: languageId ?? 'unknown',
-            categoryId: categoryId,
-          );
-          
-          _isLoading = false;
-          notifyListeners();
-          return true;
-        }
-      }
-
-      // Mode normal (user login) - periksa batasan sesi
-      try {
-        final settings =
-            await _settingsService.resetDailySessionCountIfNeeded(_userId!);
-
-        if (!_isPremium && settings.dailySessionCount >= 10) {
-          _error =
-              'Anda telah mencapai batas 10 sesi latihan harian. Upgrade ke premium untuk latihan tak terbatas!';
-          _isLoading = false;
-          notifyListeners();
-          return false;
-        }
-
-        // Update jumlah sesi hari ini (optimize: ubah urutan untuk handling error)
-        await _settingsService.updateDailySessionCount(
-          _userId!,
-          settings.dailySessionCount + 1,
-        );
-
-        // Update sesi tersisa
-        _remainingSessions =
-            _isPremium ? 999 : 10 - (settings.dailySessionCount + 1);
-      } catch (e) {
-        print("Error checking session limits: $e");
-        // Fallback: tetap boleh belajar meski ada error
-        _remainingSessions = _isPremium ? 999 : 5; // Asumsi masih ada sesi tersisa
-      }
-
-      // Dapatkan frasa untuk sesi ini
-      List<String> phraseIds = [];
-      bool usePublicMode = false;
-
-      try {
-        if (sessionType == 'review') {
-          try {
-            // Dapatkan frasa untuk direview
-            phraseIds =
-                await _reviewHistoryService.getPhrasesToReviewToday(_userId!);
-
-            // Batasi jumlah frasa
-            if (phraseIds.length > phraseCount) {
-              phraseIds = phraseIds.sublist(0, phraseCount);
-            }
-            
-            // Jika tidak ada frasa untuk direview, gunakan frasa publik
-            if (phraseIds.isEmpty) {
-              print("No phrases to review, using public phrases instead");
-              usePublicMode = true;
-            }
-          } catch (e) {
-            print("Error getting phrases to review: $e");
-            // Jika error unauthorized, gunakan frasa publik
-            if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
-              usePublicMode = true;
-            } else {
-              rethrow;
-            }
-          }
-        } 
-        
-        if (!sessionType.contains('review') || usePublicMode) {
-          try {
-            // Dapatkan frasa berdasarkan filter
-            final phrases = await _phraseService.getPhrases(
-              userId: _userId!,
-              languageId: languageId,
-              categoryId: categoryId,
-            );
-
-            if (phrases.isEmpty) {
-              print("No phrases found with filter, trying public phrases");
-              // Coba dapatkan frasa publik
-              final publicPhrases = await _phraseService.getPublicPhrases(
-                languageId: languageId,
-                categoryId: categoryId,
-                limit: phraseCount * 2, // Ambil lebih banyak untuk memungkinkan seleksi acak
-              );
-              
-              if (publicPhrases.isEmpty) {
-                _error = 'Tidak ada frasa yang tersedia untuk belajar. Tambahkan frasa terlebih dahulu atau coba kategori lain.';
-                _isLoading = false;
-                notifyListeners();
-                return false;
-              }
-              
-              // Ambil secara acak dari frasa publik
-              publicPhrases.shuffle();
-              final selectedPhrases = publicPhrases.take(phraseCount).toList();
-              phraseIds = selectedPhrases.map((p) => p.id).toList();
-              _sessionPhrases = selectedPhrases;
-            } else {
-              // Ambil secara acak
-              phrases.shuffle();
-              final selectedPhrases = phrases.take(phraseCount).toList();
-              phraseIds = selectedPhrases.map((p) => p.id).toList();
-              _sessionPhrases = selectedPhrases;
-            }
-          } catch (e) {
-            print("Error getting user phrases: $e");
-            // Jika error unauthorized, gunakan frasa publik
-            if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
-              print("Unauthorized access, using public phrases");
-              final publicPhrases = await _phraseService.getPublicPhrases(
-                languageId: languageId,
-                categoryId: categoryId,
-                limit: phraseCount * 2,
-              );
-              
-              if (publicPhrases.isEmpty) {
-                throw Exception('Tidak ada frasa publik yang tersedia untuk belajar');
-              }
-              
-              publicPhrases.shuffle();
-              final selectedPhrases = publicPhrases.take(phraseCount).toList();
-              phraseIds = selectedPhrases.map((p) => p.id).toList();
-              _sessionPhrases = selectedPhrases;
-            } else {
-              rethrow;
-            }
-          }
-        }
-
-        // Jika menggunakan review dan belum diisi
-        if (sessionType == 'review' && phraseIds.isNotEmpty && _sessionPhrases.isEmpty) {
-          _sessionPhrases = [];
-          for (var id in phraseIds) {
-            try {
-              final phrase = await _phraseService.getPhrase(id);
-              _sessionPhrases.add(phrase);
-            } catch (e) {
-              print("Error getting phrase $id: $e");
-              // Lanjutkan dengan frasa berikutnya
-            }
-          }
-        }
-      } catch (e) {
-        print("Error loading phrases: $e");
-        
-        // Sebagai fallback terakhir, coba gunakan frasa statis default
-        if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
-          try {
-            _sessionPhrases = _phraseService.getDefaultStaticPhrases();
-            if (_sessionPhrases.length > phraseCount) {
-              _sessionPhrases = _sessionPhrases.sublist(0, phraseCount);
-            }
-            print("Using static default phrases as last resort");
-          } catch (innerError) {
-            _error = 'Terjadi kesalahan saat memuat frasa: ${e.toString()}. Silakan coba lagi.';
-            _isLoading = false;
-            notifyListeners();
-            return false;
-          }
-        } else {
-          _error = 'Terjadi kesalahan saat memuat frasa: ${e.toString()}. Silakan coba lagi.';
-          _isLoading = false;
-          notifyListeners();
-          return false;
-        }
-      }
-      
-      if (_sessionPhrases.isEmpty) {
-        _error = 'Tidak ada frasa yang tersedia untuk dipelajari dengan filter yang dipilih';
+      // Cek apakah pengguna premium atau masih memiliki sesi gratis
+      if (!_isUniversalMode && !_isPremium && _remainingSessions <= 0) {
+        _error =
+            'Anda telah mencapai batas sesi belajar gratis. Upgrade ke premium untuk sesi tak terbatas.';
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
-      // Buat record sesi baru - jika gagal, gunakan sesi lokal
-      try {
-        _currentSession = await _studySessionService.startStudySession(
-          userId: _userId!,
-          sessionType: sessionType,
+      // Jika mode adalah spaced repetition, gunakan metode khusus
+      if (sessionType.contains('spacedRepetition')) {
+        return await startSpacedRepetitionSession(
           languageId: languageId,
           categoryId: categoryId,
+          maxPhrases: phraseCount,
+          userId: _userId,
         );
-      } catch (e) {
-        print("Error creating session record: $e");
-        
-        // Jika error berkaitan dengan izin, coba dengan mode universal
-        if (e.toString().contains('user_unauthorized') || e.toString().contains('401')) {
-          print("Permission issue detected, trying universal study session");
-          try {
-            _currentSession = await _studySessionService.startUniversalStudySession(
-              sessionType: sessionType,
-              languageId: languageId,
-              categoryId: categoryId,
-            );
-          } catch (universalError) {
-            print("Error with universal session too: $universalError");
-            // Meskipun gagal mencatat sesi, tetap lanjutkan belajar dengan sesi lokal
-            _currentSession = StudySession(
-              id: 'local_session_${DateTime.now().millisecondsSinceEpoch}',
-              userId: 'universal',
-              sessionType: sessionType,
-              languageId: languageId ?? 'unknown',
-              categoryId: categoryId,
-              startTime: DateTime.now(),
-              endTime: null,
-              totalPhrases: 0,
-              correctAnswers: 0,
-            );
-          }
-        } else {
-          // Meskipun gagal mencatat sesi, tetap lanjutkan belajar
-          _currentSession = StudySession(
-            id: 'local_session_${DateTime.now().millisecondsSinceEpoch}',
-            userId: _userId!,
-            sessionType: sessionType,
-            languageId: languageId ?? 'unknown',
-            categoryId: categoryId,
-            startTime: DateTime.now(),
-            endTime: null,
-            totalPhrases: 0,
-            correctAnswers: 0,
-          );
-        }
       }
 
-      return true;
+      // Untuk mode lainnya, gunakan metode standar
+      return await startStudySession(
+        sessionType: sessionType,
+        languageId: languageId,
+        categoryId: categoryId,
+        maxPhrases: phraseCount,
+        userId: _userId,
+      );
     } catch (e) {
-      print("Unexpected error in startNewSession: $e");
-      _error = 'Terjadi kesalahan: ${e.toString()}';
-      return false;
-    } finally {
+      print('Error starting new session: $e');
+      _error = 'Gagal memulai sesi belajar: $e';
       _isLoading = false;
       notifyListeners();
+      return false;
     }
   }
 
@@ -425,7 +167,7 @@ class StudyProvider with ChangeNotifier {
             _userId!,
             isCorrect,
           );
-  
+
           // Tambahkan review history baru
           await _reviewHistoryService.addReviewHistory(
             ReviewHistory(
@@ -535,5 +277,278 @@ class StudyProvider with ChangeNotifier {
   void resetError() {
     _error = null;
     notifyListeners();
+  }
+
+  // Metode untuk memulai sesi belajar
+  Future<bool> startStudySession({
+    required String sessionType,
+    String? languageId,
+    String? categoryId,
+    int maxPhrases = 10,
+    String? userId,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final effectiveUserId = userId ?? _userId ?? 'universal';
+      _isUniversalMode = effectiveUserId == 'universal';
+
+      // Cek apakah pengguna premium atau masih memiliki sesi gratis
+      if (!_isUniversalMode && !_isPremium && _remainingSessions <= 0) {
+        _error =
+            'Anda telah mencapai batas sesi belajar gratis. Upgrade ke premium untuk sesi tak terbatas.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Mulai sesi belajar baru
+      _currentSession = await _studySessionService.startStudySession(
+        userId: effectiveUserId,
+        sessionType: sessionType,
+        languageId: languageId,
+        categoryId: categoryId,
+      );
+
+      print('Sesi belajar dimulai: ${_currentSession?.id}');
+
+      // Dapatkan frasa untuk sesi belajar
+      _sessionPhrases = await _phraseService.getPhrases(
+        userId: effectiveUserId,
+        languageId: languageId,
+        categoryId: categoryId,
+      );
+
+      // Batasi jumlah frasa
+      if (_sessionPhrases.length > maxPhrases) {
+        _sessionPhrases = _sessionPhrases.sublist(0, maxPhrases);
+      }
+
+      // Acak urutan frasa
+      _sessionPhrases.shuffle();
+
+      _currentPhraseIndex = 0;
+      _correctAnswers = 0;
+
+      // Kurangi jumlah sesi yang tersisa jika bukan mode universal dan bukan premium
+      if (!_isUniversalMode && !_isPremium) {
+        _remainingSessions--;
+        // Simpan jumlah sesi yang tersisa
+        await _updateRemainingSessions();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error memulai sesi belajar: $e');
+      _error = 'Gagal memulai sesi belajar: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Metode untuk mengakhiri sesi belajar
+  Future<bool> endStudySession() async {
+    if (_currentSession == null) {
+      return false;
+    }
+
+    try {
+      await _studySessionService.endStudySession(
+        sessionId: _currentSession!.id,
+        totalPhrases: _sessionPhrases.length,
+        correctAnswers: _correctAnswers,
+      );
+
+      _currentSession = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error mengakhiri sesi belajar: $e');
+      _error = 'Gagal mengakhiri sesi belajar: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Metode untuk memperbarui jumlah sesi yang tersisa
+  Future<void> _updateRemainingSessions() async {
+    try {
+      // Simpan jumlah sesi yang tersisa di settings
+      if (_userId != null) {
+        await _settingsService.updateSetting(
+            _userId!, 'remaining_sessions', _remainingSessions.toString());
+      }
+    } catch (e) {
+      print('Error memperbarui jumlah sesi tersisa: $e');
+    }
+  }
+
+  // Metode untuk memulai sesi review dengan algoritma spaced repetition
+  Future<bool> startSpacedRepetitionSession({
+    String? languageId,
+    String? categoryId,
+    int maxPhrases = 10,
+    String? userId,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final effectiveUserId = userId ?? _userId ?? 'universal';
+      _isUniversalMode = effectiveUserId == 'universal';
+
+      // Cek apakah pengguna premium atau masih memiliki sesi gratis
+      if (!_isUniversalMode && !_isPremium && _remainingSessions <= 0) {
+        _error =
+            'Anda telah mencapai batas sesi belajar gratis. Upgrade ke premium untuk sesi tak terbatas.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Mulai sesi belajar baru
+      _currentSession = await _studySessionService.startStudySession(
+        userId: effectiveUserId,
+        sessionType: 'spaced_repetition',
+        languageId: languageId,
+        categoryId: categoryId,
+      );
+
+      print('Sesi spaced repetition dimulai: ${_currentSession?.id}');
+
+      // Dapatkan frasa untuk sesi review dengan algoritma spaced repetition
+      _sessionPhrases =
+          await _spacedRepetitionService.getPhrasesForReviewSession(
+        effectiveUserId,
+        limit: maxPhrases,
+        languageId: languageId,
+        categoryId: categoryId,
+      );
+
+      // Jika tidak ada frasa yang ditemukan, coba dapatkan frasa acak sebagai fallback
+      if (_sessionPhrases.isEmpty) {
+        print(
+            'Tidak ada frasa untuk review, menggunakan frasa acak sebagai fallback');
+        _sessionPhrases = await _phraseService.getPhrases(
+          userId: effectiveUserId,
+          languageId: languageId,
+          categoryId: categoryId,
+        );
+
+        // Batasi jumlah frasa
+        if (_sessionPhrases.length > maxPhrases) {
+          _sessionPhrases = _sessionPhrases.sublist(0, maxPhrases);
+        }
+
+        // Acak urutan frasa
+        _sessionPhrases.shuffle();
+      }
+
+      _currentPhraseIndex = 0;
+      _correctAnswers = 0;
+
+      // Kurangi jumlah sesi yang tersisa jika bukan mode universal dan bukan premium
+      if (!_isUniversalMode && !_isPremium) {
+        _remainingSessions--;
+        await _updateRemainingSessions();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error memulai sesi spaced repetition: $e');
+      _error = 'Gagal memulai sesi belajar: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Metode untuk memproses jawaban dalam mode spaced repetition
+  Future<void> processSpacedRepetitionAnswer(int quality) async {
+    if (_currentPhraseIndex >= _sessionPhrases.length ||
+        _currentSession == null) {
+      return;
+    }
+
+    final currentPhrase = _sessionPhrases[_currentPhraseIndex];
+    final effectiveUserId = _userId ?? 'universal';
+
+    try {
+      // Proses jawaban dengan algoritma spaced repetition
+      final result = await _spacedRepetitionService.processAnswer(
+        currentPhrase.id,
+        effectiveUserId,
+        quality,
+      );
+
+      // Update jumlah jawaban yang benar
+      if (result['was_correct'] as bool) {
+        _correctAnswers++;
+      }
+
+      // Pindah ke frasa berikutnya
+      _currentPhraseIndex++;
+      notifyListeners();
+
+      // Jika sudah selesai semua frasa, akhiri sesi
+      if (_currentPhraseIndex >= _sessionPhrases.length) {
+        await endStudySession();
+      }
+    } catch (e) {
+      print('Error memproses jawaban: $e');
+      _error = 'Gagal memproses jawaban: $e';
+      notifyListeners();
+    }
+  }
+
+  // Metode untuk mendapatkan statistik review
+  Future<Map<String, dynamic>> getReviewStats() async {
+    final effectiveUserId = _userId ?? 'universal';
+
+    try {
+      return await _spacedRepetitionService.getUserReviewStats(effectiveUserId);
+    } catch (e) {
+      print('Error mendapatkan statistik review: $e');
+      return {
+        'total_reviews': 0,
+        'correct_reviews': 0,
+        'accuracy': 0.0,
+        'phrases_reviewed': 0,
+        'phrases_learned': 0,
+        'total_phrases': 0,
+        'progress_percentage': 0.0,
+      };
+    }
+  }
+
+  // Metode untuk mendapatkan statistik review untuk frasa tertentu
+  Future<Map<String, dynamic>> getPhraseReviewStats(String phraseId) async {
+    final effectiveUserId = _userId ?? 'universal';
+
+    try {
+      return await _spacedRepetitionService.getPhraseReviewStats(
+        phraseId,
+        effectiveUserId,
+      );
+    } catch (e) {
+      print('Error mendapatkan statistik review frasa: $e');
+      return {
+        'total_reviews': 0,
+        'correct_reviews': 0,
+        'accuracy': 0.0,
+        'last_review_date': null,
+        'next_review_date': null,
+        'current_interval': 0,
+        'ease_factor': 2.5,
+      };
+    }
   }
 }

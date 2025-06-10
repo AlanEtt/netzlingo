@@ -67,8 +67,11 @@ class UserService {
   // Logout
   Future<void> logout() async {
     try {
+      print('UserService: Attempting to delete current session...');
       await _account.deleteSession(sessionId: 'current');
+      print('UserService: Session deleted successfully');
     } catch (e) {
+      print('UserService: Error deleting session: $e');
       rethrow;
     }
   }

@@ -155,18 +155,24 @@ class AuthProvider with ChangeNotifier {
   // Logout
   Future<void> logout() async {
     _isLoading = true;
+    print('AuthProvider: Logout process started...');
     notifyListeners();
 
     try {
+      print('AuthProvider: Calling UserService.logout()...');
       await _userService.logout();
+      print('AuthProvider: UserService.logout() completed successfully');
 
       _currentAccount = null;
       _currentUser = null;
       _isAuthenticated = false;
+      print('AuthProvider: User state reset to logged out');
     } catch (e) {
+      print('AuthProvider: Error during logout: $e');
       _error = e.toString();
     } finally {
       _isLoading = false;
+      print('AuthProvider: Logout process completed, notifying listeners');
       notifyListeners();
     }
   }
@@ -268,18 +274,30 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Memaksa reset state login (untuk kondisi darurat saat logout gagal)
+  void forceResetState() {
+    print('AuthProvider: Forcing state reset to logged out');
+    _currentAccount = null;
+    _currentUser = null;
+    _isAuthenticated = false;
+    _error = null;
+    _isLoading = false;
+    notifyListeners();
+    print('AuthProvider: State has been forcibly reset');
+  }
+
   // Menghapus semua sesi aktif
   Future<void> clearAllSessions() async {
     try {
       print('Attempting to clear all active sessions');
       await _userService.logoutAll();
-      
+
       // Reset state
       _currentAccount = null;
       _currentUser = null;
       _isAuthenticated = false;
       _error = null;
-      
+
       notifyListeners();
       print('All sessions cleared successfully');
     } catch (e) {
