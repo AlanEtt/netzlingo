@@ -115,32 +115,42 @@ class PhraseService {
 
       // Buat frasa default untuk user baru (dengan user_id mereka, bukan 'system')
       for (var phrase in defaultPhrases) {
-        // Salin frasa dengan mengubah userId ke userId pengguna dan isPublic ke false
-        final userPhrase = phrase.copyWith(
-          id: ID.unique(), // Buat ID baru
-          userId: userId, // Gunakan ID user baru
-          isPublic: false, // Tidak public
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
+        try {
+          // Salin frasa dengan mengubah userId ke userId pengguna dan isPublic ke false
+          final userPhrase = phrase.copyWith(
+            id: '', // Biarkan ID kosong, Appwrite akan generate ID unik
+            userId: userId, // Gunakan ID user baru
+            isPublic: false, // Tidak public
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
 
-        await _databases.createDocument(
-          databaseId: AppwriteConstants.databaseId,
-          collectionId: AppwriteConstants.phrasesCollection,
-          documentId: ID.unique(),
-          data: userPhrase.toMap(),
-          // Permissions khusus untuk user agar bisa mengedit dan menghapus
-          permissions: [
-            Permission.read(Role.user(userId)),
-            Permission.update(Role.user(userId)),
-            Permission.delete(Role.user(userId)),
-          ],
-        );
+          final uniqueDocId = ID.unique();
+          print("Creating phrase with ID: $uniqueDocId");
+
+          await _databases.createDocument(
+            databaseId: AppwriteConstants.databaseId,
+            collectionId: AppwriteConstants.phrasesCollection,
+            documentId: uniqueDocId,
+            data: userPhrase.toMap(),
+            // Permissions khusus untuk user agar bisa mengedit dan menghapus
+            permissions: [
+              Permission.read(Role.user(userId)),
+              Permission.update(Role.user(userId)),
+              Permission.delete(Role.user(userId)),
+            ],
+          );
+        } catch (phraseError) {
+          // Log error but continue with other phrases
+          print("Error creating individual phrase: $phraseError");
+          continue;
+        }
       }
 
       print("Default phrases created successfully for user: $userId");
     } catch (e) {
       print("Error creating default phrases for user: $e");
+      // Don't rethrow - this shouldn't prevent user login
     }
   }
 
@@ -393,6 +403,7 @@ class PhraseService {
             'translated_text': phrase.translatedText,
             'language_id': phrase.languageId,
             'user_id': phrase.userId,
+            'notes': phrase.notes,
             'created_at': DateTime.now().toIso8601String(),
             'updated_at': DateTime.now().toIso8601String(),
             'is_favorite': false,
@@ -471,6 +482,7 @@ class PhraseService {
           final Map<String, dynamic> minimalData = {
             'original_text': phrase.originalText,
             'translated_text': phrase.translatedText,
+            'notes': phrase.notes,
             'updated_at': DateTime.now().toIso8601String(),
           };
 

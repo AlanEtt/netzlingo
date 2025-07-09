@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/phrase.dart';
 import '../../providers/phrase_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/tts_service.dart';
 
 class PhraseCard extends StatefulWidget {
   final Phrase phrase;
@@ -23,6 +24,13 @@ class PhraseCard extends StatefulWidget {
 class _PhraseCardState extends State<PhraseCard> {
   bool _isDeleting = false;
   bool _isUpdating = false;
+  final TTSService _ttsService = TTSService();
+
+  @override
+  void initState() {
+    super.initState();
+    _ttsService.initialize();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +64,7 @@ class _PhraseCardState extends State<PhraseCard> {
                 IconButton(
                   icon: const Icon(Icons.volume_up),
                   onPressed: () {
-                    // Implementasi TTS nanti
+                    _ttsService.speak(widget.phrase.originalText);
                   },
                   tooltip: 'Dengarkan',
                 ),

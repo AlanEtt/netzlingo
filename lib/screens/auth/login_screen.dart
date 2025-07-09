@@ -183,44 +183,80 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   );
 
-                                  final success = await authProvider.login(
-                                    _emailController.text.trim(),
-                                    _passwordController.text.trim(),
-                                  );
+                                  try {
+                                    final success = await authProvider.login(
+                                      _emailController.text.trim(),
+                                      _passwordController.text.trim(),
+                                    );
 
-                                  if (success && mounted) {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const HomeScreen(),
-                                      ),
-                                    );
-                                  } else if (!success && mounted) {
-                                    // Tampilkan error lengkap jika login gagal
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          authProvider.error ??
-                                              'Gagal masuk. Periksa email dan password Anda.',
+                                    if (success && mounted) {
+                                      // Navigasi ke halaman utama
+                                      Navigator.pushReplacementNamed(
+                                          context, '/home');
+                                    } else if (mounted &&
+                                        authProvider.error != null) {
+                                      // Tampilkan error dari provider
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(authProvider.error!),
+                                          backgroundColor: Colors.red,
                                         ),
-                                        backgroundColor: Colors.red,
-                                        duration: const Duration(seconds: 5),
-                                      ),
-                                    );
+                                      );
+                                    }
+                                  } catch (e) {
+                                    // Tangani error yang tidak tertangkap oleh provider
+                                    if (mounted) {
+                                      // Jika error adalah document_already_exists, tampilkan pesan yang lebih user-friendly
+                                      String errorMessage = e
+                                              .toString()
+                                              .contains(
+                                                  'document_already_exists')
+                                          ? 'Sedang memproses login, harap tunggu sebentar...'
+                                          : 'Terjadi kesalahan: ${e.toString()}';
+
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(errorMessage),
+                                          backgroundColor: e
+                                                  .toString()
+                                                  .contains(
+                                                      'document_already_exists')
+                                              ? Colors.orange
+                                              : Colors.red,
+                                        ),
+                                      );
+
+                                      // Jika error document_already_exists, coba login lagi setelah beberapa detik
+                                      if (e.toString().contains(
+                                          'document_already_exists')) {
+                                        Future.delayed(Duration(seconds: 2),
+                                            () {
+                                          authProvider
+                                              .login(
+                                            _emailController.text.trim(),
+                                            _passwordController.text.trim(),
+                                          )
+                                              .then((success) {
+                                            if (success && mounted) {
+                                              Navigator.pushReplacementNamed(
+                                                  context, '/home');
+                                            }
+                                          });
+                                        });
+                                      }
+                                    }
                                   }
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          minimumSize: const Size.fromHeight(50),
                         ),
                         child: authProvider.isLoading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
                               )
                             : const Text(
                                 'Masuk',

@@ -52,6 +52,7 @@ class AuthProvider with ChangeNotifier {
   // Fungsi untuk membuat frasa default jika belum ada
   Future<void> _createDefaultPhrasesIfNeeded(String userId) async {
     try {
+      print("Creating default phrases for user: $userId if needed");
       await _phraseService.createUserDefaultPhrases(userId);
     } catch (e) {
       print("Error creating default phrases for user $userId: $e");
@@ -95,7 +96,13 @@ class AuthProvider with ChangeNotifier {
       _isAuthenticated = true;
 
       // Buat frasa default untuk pengguna jika belum ada
-      await _createDefaultPhrasesIfNeeded(_currentAccount!.$id);
+      try {
+        await _createDefaultPhrasesIfNeeded(_currentAccount!.$id);
+      } catch (phraseError) {
+        // Jika gagal membuat frasa default, jangan gagalkan login
+        print("Error creating default phrases: $phraseError");
+        // Terus login meski gagal membuat frasa default
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -109,6 +116,28 @@ class AuthProvider with ChangeNotifier {
         _error = "Email atau password salah. Silakan coba lagi.";
       } else if (e.toString().contains('general_unauthorized')) {
         _error = "Akses tidak diizinkan. Cek email dan password Anda.";
+      } else if (e.toString().contains('document_already_exists')) {
+        // Jika error adalah document_already_exists, coba login lagi tanpa membuat frasa
+        try {
+          print("Mencoba login ulang tanpa membuat frasa default...");
+          // Logout dulu untuk memastikan
+          await _userService.logoutAll();
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Login lagi
+          await _userService.login(email, password);
+
+          // Ambil data user tanpa membuat frasa default
+          _currentAccount = await _userService.getCurrentUser();
+          _currentUser = await _userService.getUserModel(_currentAccount!.$id);
+          _isAuthenticated = true;
+
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        } catch (retryError) {
+          _error = "Login gagal: ${retryError.toString()}";
+        }
       } else {
         _error = "Login gagal: ${e.toString()}";
       }
