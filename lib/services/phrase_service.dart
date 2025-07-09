@@ -79,9 +79,6 @@ class PhraseService {
             Permission.read(Role.any()),
             Permission.read(Role.users()),
             Permission.read(Role.guests()),
-            // Admin bisa mengubah
-            Permission.update(Role.team("admin", "owner")),
-            Permission.delete(Role.team("admin", "owner")),
           ],
         );
       }
@@ -89,6 +86,61 @@ class PhraseService {
       print("Universal public phrases created successfully");
     } catch (e) {
       print("Error creating universal public phrases: $e");
+    }
+  }
+
+  // PERBAIKAN: Membuat frasa default untuk user baru yang DAPAT diedit dan dihapus
+  Future<void> createUserDefaultPhrases(String userId) async {
+    try {
+      print("Creating default phrases for new user: $userId");
+
+      // Periksa apakah user sudah memiliki frasa
+      final existingUserPhrases = await _databases.listDocuments(
+        databaseId: AppwriteConstants.databaseId,
+        collectionId: AppwriteConstants.phrasesCollection,
+        queries: [
+          Query.equal('user_id', userId),
+          Query.limit(1),
+        ],
+      );
+
+      // Jika user sudah memiliki frasa, skip pembuatan
+      if (existingUserPhrases.documents.isNotEmpty) {
+        print("User already has phrases, skipping default phrase creation");
+        return;
+      }
+
+      // Buat frasa default untuk user baru dari template
+      final defaultPhrases = Phrase.getDefaultPublicPhrases();
+
+      // Buat frasa default untuk user baru (dengan user_id mereka, bukan 'system')
+      for (var phrase in defaultPhrases) {
+        // Salin frasa dengan mengubah userId ke userId pengguna dan isPublic ke false
+        final userPhrase = phrase.copyWith(
+          id: ID.unique(), // Buat ID baru
+          userId: userId, // Gunakan ID user baru
+          isPublic: false, // Tidak public
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await _databases.createDocument(
+          databaseId: AppwriteConstants.databaseId,
+          collectionId: AppwriteConstants.phrasesCollection,
+          documentId: ID.unique(),
+          data: userPhrase.toMap(),
+          // Permissions khusus untuk user agar bisa mengedit dan menghapus
+          permissions: [
+            Permission.read(Role.user(userId)),
+            Permission.update(Role.user(userId)),
+            Permission.delete(Role.user(userId)),
+          ],
+        );
+      }
+
+      print("Default phrases created successfully for user: $userId");
+    } catch (e) {
+      print("Error creating default phrases for user: $e");
     }
   }
 
@@ -199,6 +251,9 @@ class PhraseService {
         queries.add(Query.equal('is_favorite', isFavorite));
       }
 
+      // Urutkan berdasarkan created_at terbaru
+      queries.add(Query.orderDesc('created_at'));
+
       final documentList = await _databases.listDocuments(
         databaseId: AppwriteConstants.databaseId,
         collectionId: AppwriteConstants.phrasesCollection,
@@ -208,32 +263,6 @@ class PhraseService {
       List<Phrase> phrases = documentList.documents
           .map((doc) => Phrase.fromDocument(doc))
           .toList();
-
-      // Jika tidak ada frasa yang ditemukan, coba dapatkan frasa dengan userId universal
-      if (phrases.isEmpty && userId != null && userId != 'universal') {
-        print("No phrases found for user $userId, trying universal phrases");
-        return await getPhrases(
-          userId: 'universal',
-          languageId: languageId,
-          categoryId: categoryId,
-          isFavorite: isFavorite,
-        );
-      }
-
-      // Jika masih kosong, dapatkan frasa publik
-      if (phrases.isEmpty) {
-        print("No user phrases found, getting public phrases");
-        return await getPublicPhrases(
-          languageId: languageId,
-          categoryId: categoryId,
-        );
-      }
-
-      // Jika masih kosong juga, kembalikan frasa default statis
-      if (phrases.isEmpty) {
-        print("Still no phrases found, returning default static phrases");
-        return getDefaultStaticPhrases();
-      }
 
       return phrases;
     } catch (e) {
@@ -258,17 +287,37 @@ class PhraseService {
   // Mencari frasa berdasarkan teks
   Future<List<Phrase>> searchPhrases(String text, String? userId) async {
     try {
-      List<String> queries = [Query.search('original_text', text)];
+      // Jika tidak ada userId, cari di frasa universal
+      if (userId == null || userId.isEmpty) {
+        print("Searching in universal phrases");
+        final universalDocs = await _databases.listDocuments(
+          databaseId: AppwriteConstants.databaseId,
+          collectionId: AppwriteConstants.phrasesCollection,
+          queries: [
+            Query.search('original_text', text),
+            Query.equal('user_id', 'universal'),
+          ],
+        );
 
-      if (userId != null) {
-        queries.add(Query.equal('user_id', userId));
+        return universalDocs.documents
+            .map((doc) => Phrase.fromDocument(doc))
+            .toList();
       }
+
+      // Cari di frasa milik user ini
+      print("Searching phrases for user $userId with text: '$text'");
+      List<String> queries = [
+        Query.search('original_text', text),
+        Query.equal('user_id', userId),
+      ];
 
       final documentList = await _databases.listDocuments(
         databaseId: AppwriteConstants.databaseId,
         collectionId: AppwriteConstants.phrasesCollection,
         queries: queries,
       );
+
+      print("Found ${documentList.documents.length} phrases matching '$text'");
 
       return documentList.documents
           .map((doc) => Phrase.fromDocument(doc))
@@ -280,94 +329,199 @@ class PhraseService {
     }
   }
 
-  // Menambah frasa baru
+  // PERBAIKAN: Menambah frasa baru dengan penanganan error yang lebih baik
   Future<Phrase> addPhrase(Phrase phrase) async {
     try {
+      print("Adding new phrase: ${phrase.originalText}");
+
+      // Buat ID baru untuk frasa
+      final documentId = ID.unique();
+
+      // Buat data untuk frasa (pastikan semua field required terisi)
+      final data = phrase.toMap();
+      data['user_id'] = phrase.userId; // Pastikan user_id tidak null
+
+      // Debug info
+      print("Sending to AppWrite: ${data.toString()}");
+
+      // Coba buat dokumen dengan permissions yang jelas
       final document = await _databases.createDocument(
         databaseId: AppwriteConstants.databaseId,
         collectionId: AppwriteConstants.phrasesCollection,
-        documentId: ID.unique(),
-        data: phrase.toMap(),
-        // Tambahkan izin untuk pengguna ini dan any untuk read
+        documentId: documentId,
+        data: data,
+        // Tambahkan izin eksplisit
         permissions: [
-          Permission.read(Role.any()),
           Permission.read(Role.user(phrase.userId)),
           Permission.update(Role.user(phrase.userId)),
           Permission.delete(Role.user(phrase.userId)),
         ],
       );
 
+      print("Phrase successfully added with ID: ${document.$id}");
       return Phrase.fromDocument(document);
     } catch (e) {
       print("Error adding phrase: $e");
 
-      // Jika gagal, coba lagi tanpa permissions
+      // Jika error, coba lagi dengan menghilangkan permissions
       try {
+        print("Retrying phrase addition without permissions...");
+
+        final documentId = ID.unique();
+
         final document = await _databases.createDocument(
           databaseId: AppwriteConstants.databaseId,
           collectionId: AppwriteConstants.phrasesCollection,
-          documentId: ID.unique(),
+          documentId: documentId,
           data: phrase.toMap(),
-          // Tanpa custom permissions
+          // Tanpa permissions kustom
         );
+
+        print(
+            "Phrase added successfully on second attempt with ID: ${document.$id}");
         return Phrase.fromDocument(document);
-      } catch (innerError) {
-        print("Error adding phrase without permissions: $innerError");
-        throw innerError;
+      } catch (secondError) {
+        print("Second attempt failed: $secondError");
+
+        // Jika masih gagal, coba satu kali lagi dengan pendekatan minimum
+        try {
+          print("Final attempt with simplified approach...");
+
+          // Minimalisasi data, hanya gunakan yang required
+          final Map<String, dynamic> minimalData = {
+            'original_text': phrase.originalText,
+            'translated_text': phrase.translatedText,
+            'language_id': phrase.languageId,
+            'user_id': phrase.userId,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+            'is_favorite': false,
+          };
+
+          final document = await _databases.createDocument(
+            databaseId: AppwriteConstants.databaseId,
+            collectionId: AppwriteConstants.phrasesCollection,
+            documentId: ID.unique(),
+            data: minimalData,
+          );
+
+          print(
+              "Phrase added successfully with minimal approach: ${document.$id}");
+          return Phrase.fromDocument(document);
+        } catch (finalError) {
+          print("All attempts failed: $finalError");
+          throw Exception(
+              "Gagal menambahkan frasa setelah beberapa percobaan: $finalError");
+        }
       }
     }
   }
 
-  // Memperbarui frasa
+  // PERBAIKAN: Memperbarui frasa dengan penanganan error yang lebih baik
   Future<Phrase> updatePhrase(Phrase phrase) async {
     try {
+      print("Updating phrase with ID: ${phrase.id}");
+
+      // Update dokumen tanpa permissions kustom
       final document = await _databases.updateDocument(
         databaseId: AppwriteConstants.databaseId,
         collectionId: AppwriteConstants.phrasesCollection,
         documentId: phrase.id,
         data: phrase.toMap(),
-        // Tambahkan izin untuk pengguna ini dan any untuk read
-        permissions: [
-          Permission.read(Role.any()),
-          Permission.read(Role.user(phrase.userId)),
-          Permission.update(Role.user(phrase.userId)),
-          Permission.delete(Role.user(phrase.userId)),
-        ],
       );
 
+      print("Phrase successfully updated");
       return Phrase.fromDocument(document);
     } catch (e) {
       print("Error updating phrase: $e");
 
-      // Jika gagal, coba lagi tanpa permissions
+      // Jika error, coba dengan pendekatan lain
       try {
+        print("Retrying with alternative approach...");
+
+        // Jika gagal update, coba dapatkan dokumen asli dulu
+        final original = await _databases.getDocument(
+          databaseId: AppwriteConstants.databaseId,
+          collectionId: AppwriteConstants.phrasesCollection,
+          documentId: phrase.id,
+        );
+
+        // Kemudian gunakan permissions dari dokumen asli
         final document = await _databases.updateDocument(
           databaseId: AppwriteConstants.databaseId,
           collectionId: AppwriteConstants.phrasesCollection,
           documentId: phrase.id,
           data: phrase.toMap(),
-          // Tanpa custom permissions
+          // Konversi List<dynamic> ke List<String> atau null jika tidak ada permissions
+          permissions: original.$permissions != null
+              ? original.$permissions.cast<String>()
+              : null,
         );
+
+        print("Phrase successfully updated with original permissions");
         return Phrase.fromDocument(document);
-      } catch (innerError) {
-        print("Error updating phrase without permissions: $innerError");
-        // Jika masih gagal, kembalikan objek phrase yang diteruskan
-        return phrase;
+      } catch (secondError) {
+        print("Second attempt failed: $secondError");
+
+        // Jika masih gagal, coba update dengan pendekatan minimal
+        try {
+          print("Final attempt with minimal data approach...");
+
+          // Hanya update field penting
+          final Map<String, dynamic> minimalData = {
+            'original_text': phrase.originalText,
+            'translated_text': phrase.translatedText,
+            'updated_at': DateTime.now().toIso8601String(),
+          };
+
+          final document = await _databases.updateDocument(
+            databaseId: AppwriteConstants.databaseId,
+            collectionId: AppwriteConstants.phrasesCollection,
+            documentId: phrase.id,
+            data: minimalData,
+          );
+
+          print("Phrase updated successfully with minimal approach");
+          return Phrase.fromDocument(document);
+        } catch (finalError) {
+          print("All update attempts failed: $finalError");
+          throw Exception("Gagal memperbarui frasa: $finalError");
+        }
       }
     }
   }
 
-  // Menghapus frasa
-  Future<void> deletePhrase(String id) async {
+  // Menghapus frasa dengan penanganan error yang lebih baik
+  Future<bool> deletePhrase(String id) async {
     try {
+      print("Deleting phrase with ID: $id");
       await _databases.deleteDocument(
         databaseId: AppwriteConstants.databaseId,
         collectionId: AppwriteConstants.phrasesCollection,
         documentId: id,
       );
+      print("Phrase successfully deleted");
+      return true;
     } catch (e) {
       print("Error deleting phrase: $e");
-      rethrow;
+
+      // Jika gagal karena permission, coba update status isDeleted tanpa menghapus
+      try {
+        print("Trying soft delete instead...");
+        await _databases.updateDocument(
+            databaseId: AppwriteConstants.databaseId,
+            collectionId: AppwriteConstants.phrasesCollection,
+            documentId: id,
+            data: {
+              'is_deleted': true,
+              'updated_at': DateTime.now().toIso8601String(),
+            });
+        print("Phrase soft deleted successfully");
+        return true;
+      } catch (secondError) {
+        print("Soft delete failed: $secondError");
+        return false;
+      }
     }
   }
 

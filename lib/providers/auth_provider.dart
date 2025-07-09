@@ -3,9 +3,12 @@ import 'package:appwrite/models.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
 import '../services/appwrite_service.dart';
+import '../services/phrase_service.dart'; // Tambahkan import
 
 class AuthProvider with ChangeNotifier {
   final UserService _userService = UserService(AppwriteService());
+  final PhraseService _phraseService =
+      PhraseService(AppwriteService()); // Tambahkan PhraseService
 
   User? _currentAccount;
   UserModel? _currentUser;
@@ -33,6 +36,9 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         // Dapatkan data user dari database
         _currentUser = await _userService.getUserModel(_currentAccount!.$id);
+
+        // Buat frasa default untuk pengguna jika belum ada
+        await _createDefaultPhrasesIfNeeded(_currentAccount!.$id);
       }
     } catch (e) {
       _error = null; // Tidak perlu error karena ini normal jika belum login
@@ -40,6 +46,16 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Fungsi untuk membuat frasa default jika belum ada
+  Future<void> _createDefaultPhrasesIfNeeded(String userId) async {
+    try {
+      await _phraseService.createUserDefaultPhrases(userId);
+    } catch (e) {
+      print("Error creating default phrases for user $userId: $e");
+      // Tidak perlu throw error ke user karena ini hanya fitur tambahan
     }
   }
 
@@ -78,6 +94,9 @@ class AuthProvider with ChangeNotifier {
       _currentUser = await _userService.getUserModel(_currentAccount!.$id);
       _isAuthenticated = true;
 
+      // Buat frasa default untuk pengguna jika belum ada
+      await _createDefaultPhrasesIfNeeded(_currentAccount!.$id);
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -110,6 +129,7 @@ class AuthProvider with ChangeNotifier {
     try {
       // Daftar akun baru
       final user = await _userService.signup(email, password, name);
+      print("User berhasil dibuat dengan ID: ${user.$id}");
 
       // Tunggu sebentar sebelum melakukan login untuk menghindari konflik sesi
       await Future.delayed(const Duration(milliseconds: 300));
@@ -122,6 +142,11 @@ class AuthProvider with ChangeNotifier {
         _currentAccount = await _userService.getCurrentUser();
         _currentUser = await _userService.getUserModel(_currentAccount!.$id);
         _isAuthenticated = true;
+
+        // Buat frasa default untuk pengguna baru (ini penting untuk user baru)
+        print(
+            "Membuat frasa default untuk user baru dengan ID: ${_currentAccount!.$id}");
+        await _createDefaultPhrasesIfNeeded(_currentAccount!.$id);
 
         _isLoading = false;
         notifyListeners();

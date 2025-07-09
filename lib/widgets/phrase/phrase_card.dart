@@ -1,192 +1,369 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/phrase.dart';
-import '../../models/tag.dart';
-import '../../models/category.dart';
-import '../../providers/category_provider.dart';
-import '../../providers/tag_provider.dart';
-import '../../services/tts_service.dart';
+import '../../providers/phrase_provider.dart';
+import '../../providers/auth_provider.dart';
 
-class PhraseCard extends StatelessWidget {
+class PhraseCard extends StatefulWidget {
   final Phrase phrase;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-  final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onDeleted;
+  final VoidCallback? onUpdated;
 
   const PhraseCard({
     Key? key,
     required this.phrase,
-    this.onEdit,
-    this.onDelete,
-    this.onFavoriteToggle,
+    this.onDeleted,
+    this.onUpdated,
   }) : super(key: key);
 
   @override
+  State<PhraseCard> createState() => _PhraseCardState();
+}
+
+class _PhraseCardState extends State<PhraseCard> {
+  bool _isDeleting = false;
+  bool _isUpdating = false;
+
+  @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final currentUserId = authProvider.userId;
+
+    // Tentukan apakah user dapat mengedit/menghapus frasa ini
+    final bool canModify =
+        currentUserId.isNotEmpty && currentUserId == widget.phrase.userId;
+
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      elevation: 2.0,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
-                    phrase.originalText,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    widget.phrase.originalText,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.volume_up),
                   onPressed: () {
-                    TTSService().speak(phrase.originalText);
+                    // Implementasi TTS nanti
                   },
-                  tooltip: 'Ucapkan',
+                  tooltip: 'Dengarkan',
                 ),
-                if (onFavoriteToggle != null)
-                  IconButton(
-                    icon: Icon(
-                      phrase.isFavorite
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: phrase.isFavorite ? Colors.red : null,
-                    ),
-                    onPressed: onFavoriteToggle,
-                    tooltip: phrase.isFavorite
-                        ? 'Hapus dari favorit'
-                        : 'Tambahkan ke favorit',
+                IconButton(
+                  icon: Icon(
+                    widget.phrase.isFavorite
+                        ? Icons.favorite
+                        : Icons.favorite_border,
                   ),
+                  onPressed: _toggleFavorite,
+                  tooltip: widget.phrase.isFavorite
+                      ? 'Hapus dari favorit'
+                      : 'Tambahkan ke favorit',
+                ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 8.0),
             Text(
-              phrase.translatedText,
-              style: Theme.of(context).textTheme.bodyLarge,
+              widget.phrase.translatedText,
+              style: const TextStyle(fontSize: 16),
             ),
-            if (phrase.notes != null && phrase.notes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Catatan: ${phrase.notes}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      color: Colors.grey[600],
-                    ),
+            if (widget.phrase.notes != null && widget.phrase.notes!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Catatan: ${widget.phrase.notes}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey,
+                  ),
+                ),
               ),
-            ],
-
-            // Kategori
-            if (phrase.categoryId != null)
-              Consumer<CategoryProvider>(
-                builder: (context, categoryProvider, child) {
-                  return FutureBuilder<Category?>(
-                    future:
-                        categoryProvider.getCategoryById(phrase.categoryId!),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData || snapshot.data == null) {
-                        return const SizedBox.shrink();
-                      }
-
-                      final category = snapshot.data!;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.folder,
-                                size: 16, color: Colors.blueGrey),
-                            const SizedBox(width: 4),
-                            Text(
-                              category.name,
-                              style: TextStyle(
-                                color: Colors.blueGrey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-
-            // Tag
-            Consumer<TagProvider>(builder: (context, tagProvider, child) {
-              return FutureBuilder<List<Tag>>(
-                future: phrase.id != null
-                    ? tagProvider.getTagsForPhrase(phrase.id!, '')
-                    : Future.value([]),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-
-                  final tags = snapshot.data!;
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: tags.map((tag) {
-                        final tagColor =
-                            _getColorFromHex(tag.color ?? '#E0E0E0');
-                        return Chip(
-                          label: Text(
-                            tag.name,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          backgroundColor: tagColor.withOpacity(0.2),
-                          labelPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        );
-                      }).toList(),
+            const SizedBox(height: 12.0),
+            // Tampilkan tags jika ada
+            if (widget.phrase.tags != null && widget.phrase.tags!.isNotEmpty)
+              Wrap(
+                spacing: 8.0,
+                children: widget.phrase.tags!.map((tag) {
+                  return Chip(
+                    label: Text(
+                      tag,
+                      style: const TextStyle(fontSize: 12),
                     ),
+                    backgroundColor: Colors.blue.shade100,
+                    padding: const EdgeInsets.all(2.0),
                   );
-                },
-              );
-            }),
-
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (onEdit != null)
+                }).toList(),
+              ),
+            const SizedBox(height: 12.0),
+            // Tombol Edit & Hapus hanya muncul jika user adalah pemilik frasa
+            if (canModify)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
                   TextButton.icon(
-                    icon: const Icon(Icons.edit, size: 18),
+                    icon: const Icon(Icons.edit, size: 20),
                     label: const Text('Edit'),
-                    onPressed: onEdit,
+                    onPressed: _isDeleting || _isUpdating ? null : _editPhrase,
                   ),
-                if (onDelete != null)
+                  const SizedBox(width: 8.0),
                   TextButton.icon(
-                    icon: const Icon(Icons.delete, size: 18),
-                    label: const Text('Hapus'),
-                    onPressed: onDelete,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
+                    icon: _isDeleting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.delete, size: 20, color: Colors.red),
+                    label: Text(
+                      'Hapus',
+                      style: TextStyle(
+                        color: _isDeleting ? Colors.grey : Colors.red,
+                      ),
                     ),
+                    onPressed:
+                        _isDeleting || _isUpdating ? null : _confirmDelete,
                   ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),
     );
   }
 
-  Color _getColorFromHex(String hexColor) {
-    hexColor = hexColor.replaceAll('#', '');
-    if (hexColor.length == 6) {
-      hexColor = 'FF$hexColor';
+  // Konfirmasi sebelum menghapus
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi Hapus'),
+        content: const Text(
+            'Apakah Anda yakin ingin menghapus frasa ini? Tindakan ini tidak dapat dibatalkan.'),
+        actions: [
+          TextButton(
+            child: const Text('Batal'),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          TextButton(
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _deletePhrase();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Menghapus frasa
+  Future<void> _deletePhrase() async {
+    if (_isDeleting) return;
+
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      final phraseProvider =
+          Provider.of<PhraseProvider>(context, listen: false);
+      final success = await phraseProvider.deletePhrase(widget.phrase.id);
+
+      if (success) {
+        // Notifikasi sukses
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Frasa berhasil dihapus'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        // Callback ke parent widget jika ada
+        if (widget.onDeleted != null) {
+          widget.onDeleted!();
+        }
+      } else {
+        // Notifikasi gagal
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(phraseProvider.error ?? 'Gagal menghapus frasa'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Tangani error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
+      }
     }
-    if (hexColor.length == 8) {
-      return Color(int.parse('0x$hexColor'));
+  }
+
+  // Mengedit frasa
+  void _editPhrase() async {
+    if (_isUpdating) return;
+
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      // Tampilkan dialog edit
+      final TextEditingController originalController =
+          TextEditingController(text: widget.phrase.originalText);
+      final TextEditingController translatedController =
+          TextEditingController(text: widget.phrase.translatedText);
+      final TextEditingController notesController =
+          TextEditingController(text: widget.phrase.notes);
+
+      final result = await showDialog<Map<String, String>>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Edit Frasa'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: originalController,
+                  decoration: const InputDecoration(labelText: 'Teks Asli'),
+                ),
+                TextField(
+                  controller: translatedController,
+                  decoration: const InputDecoration(labelText: 'Terjemahan'),
+                ),
+                TextField(
+                  controller: notesController,
+                  decoration:
+                      const InputDecoration(labelText: 'Catatan (opsional)'),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Batal'),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+            TextButton(
+              child: const Text('Simpan'),
+              onPressed: () {
+                Navigator.of(ctx).pop({
+                  'originalText': originalController.text,
+                  'translatedText': translatedController.text,
+                  'notes': notesController.text,
+                });
+              },
+            ),
+          ],
+        ),
+      );
+
+      if (result != null) {
+        // Update frasa dengan data baru
+        final updatedPhrase = widget.phrase.copyWith(
+          originalText: result['originalText'],
+          translatedText: result['translatedText'],
+          notes: result['notes'],
+          updatedAt: DateTime.now(),
+        );
+
+        final phraseProvider =
+            Provider.of<PhraseProvider>(context, listen: false);
+        final success = await phraseProvider.updatePhrase(updatedPhrase);
+
+        if (success) {
+          // Notifikasi sukses
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Frasa berhasil diperbarui'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+
+          // Callback ke parent widget jika ada
+          if (widget.onUpdated != null) {
+            widget.onUpdated!();
+          }
+        } else {
+          // Notifikasi gagal
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text(phraseProvider.error ?? 'Gagal memperbarui frasa'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // Tangani error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+        });
+      }
     }
-    return Colors.grey;
+  }
+
+  // Toggle favorit
+  void _toggleFavorite() async {
+    try {
+      final phraseProvider =
+          Provider.of<PhraseProvider>(context, listen: false);
+      await phraseProvider.toggleFavorite(widget.phrase);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengubah status favorit: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

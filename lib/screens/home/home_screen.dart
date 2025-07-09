@@ -22,7 +22,7 @@ class HomeScreenState extends State<HomeScreen> {
   bool _isInitialized = false;
 
   final List<Widget> _screens = [
-    const PhraseManagementScreen(),
+    const PhraseListScreen(), // Gunakan PhraseListScreen yang baru
     const StudyScreen(),
     const StatisticsScreen(),
     const SettingsScreen(),

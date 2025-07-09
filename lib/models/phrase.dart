@@ -13,6 +13,7 @@ class Phrase {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isPublic;
+  final List<String>? tags; // Tambahkan properti tags
 
   Phrase({
     required this.id,
@@ -27,6 +28,7 @@ class Phrase {
     required this.createdAt,
     required this.updatedAt,
     this.isPublic = false,
+    this.tags, // Tambahkan tags di constructor
   });
 
   Map<String, dynamic> toMap() {
@@ -42,10 +44,19 @@ class Phrase {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_public': isPublic,
+      'tags': tags ?? [], // Tambahkan tags ke map
     };
   }
 
   factory Phrase.fromDocument(Document document) {
+    // Parse tags jika ada
+    List<String>? parsedTags;
+    if (document.data['tags'] != null) {
+      if (document.data['tags'] is List) {
+        parsedTags = List<String>.from(document.data['tags']);
+      }
+    }
+
     return Phrase(
       id: document.$id,
       originalText: document.data['original_text'],
@@ -63,10 +74,19 @@ class Phrase {
           ? DateTime.parse(document.data['updated_at'])
           : DateTime.parse(document.$updatedAt),
       isPublic: document.data['is_public'] ?? false,
+      tags: parsedTags, // Tambahkan tags dari dokumen
     );
   }
 
   factory Phrase.fromMap(Map<String, dynamic> map) {
+    // Parse tags jika ada
+    List<String>? parsedTags;
+    if (map['tags'] != null) {
+      if (map['tags'] is List) {
+        parsedTags = List<String>.from(map['tags']);
+      }
+    }
+
     return Phrase(
       id: map.containsKey('\$id') ? map['\$id'] : map['id'],
       originalText: map['original_text'],
@@ -84,6 +104,7 @@ class Phrase {
           ? DateTime.parse(map['updated_at'])
           : map['updated_at'],
       isPublic: map['is_public'] ?? false,
+      tags: parsedTags, // Tambahkan tags dari map
     );
   }
 
@@ -100,6 +121,7 @@ class Phrase {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isPublic,
+    List<String>? tags, // Tambahkan tags
   }) {
     return Phrase(
       id: id ?? this.id,
@@ -114,14 +136,15 @@ class Phrase {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isPublic: isPublic ?? this.isPublic,
+      tags: tags ?? this.tags, // Tambahkan tags
     );
   }
-  
+
   // Metode utuk membuat Phrase menjadi publik
   Phrase makePublic() {
     return copyWith(isPublic: true);
   }
-  
+
   // Mendapatkan daftar frasa default publik
   static List<Phrase> getDefaultPublicPhrases() {
     final now = DateTime.now();
@@ -226,7 +249,7 @@ class Phrase {
         originalText: 'Saya lapar',
         translatedText: 'I am hungry',
         notes: 'Expressing hunger in Indonesian',
-        isFavorite: false, 
+        isFavorite: false,
         createdAt: now,
         updatedAt: now,
         isPublic: true,

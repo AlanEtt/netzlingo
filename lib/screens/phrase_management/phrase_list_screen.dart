@@ -1,405 +1,260 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/phrase.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/phrase_provider.dart';
-import '../../providers/language_provider.dart';
-import '../../providers/category_provider.dart';
 import '../../widgets/phrase/phrase_card.dart';
 import 'add_phrase_screen.dart';
-import 'category_management_screen.dart';
 
-class PhraseManagementScreen extends StatefulWidget {
-  const PhraseManagementScreen({Key? key}) : super(key: key);
+class PhraseListScreen extends StatefulWidget {
+  static const routeName = '/phrase-list';
+
+  const PhraseListScreen({Key? key}) : super(key: key);
 
   @override
-  PhraseManagementScreenState createState() => PhraseManagementScreenState();
+  State<PhraseListScreen> createState() => _PhraseListScreenState();
 }
 
-class PhraseManagementScreenState extends State<PhraseManagementScreen> {
-  // Filter dan pencarian
-  String _searchQuery = '';
-  bool _showFavoritesOnly = false;
-  String? _selectedLanguageId;
-  String? _selectedCategoryId;
+class _PhraseListScreenState extends State<PhraseListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Memuat frasa saat halaman dibuka
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPhrases();
+    _loadPhrases();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Fungsi untuk memuat frasa
+  Future<void> _loadPhrases() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final phraseProvider =
+          Provider.of<PhraseProvider>(context, listen: false);
+
+      // Muat frasa milik user yang login
+      await phraseProvider.loadPhrases(userId: authProvider.userId);
+    } catch (e) {
+      print('Error loading phrases: $e');
+      // Error akan ditangani oleh provider
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Fungsi untuk pencarian
+  void _searchPhrases(String query) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
+
+    setState(() {
+      _isSearching = true;
+    });
+
+    // Jika query kosong, muat semua frasa
+    if (query.trim().isEmpty) {
+      phraseProvider.loadPhrases(userId: authProvider.userId);
+    } else {
+      // Cari frasa berdasarkan query
+      phraseProvider.searchPhrases(query, userId: authProvider.userId);
+    }
+
+    setState(() {
+      _isSearching = false;
     });
   }
 
-  Future<void> _loadPhrases() async {
-    final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
-    await phraseProvider.loadPhrases(
-      languageId: _selectedLanguageId,
-      categoryId: _selectedCategoryId,
+  // Navigasi ke halaman tambah frasa
+  void _navigateToAddPhrase() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddPhraseScreen()),
     );
+
+    // Refresh jika ada perubahan
+    if (result == true) {
+      _loadPhrases();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final phraseProvider = Provider.of<PhraseProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Frasa Saya'),
-        centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(
-              _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
-            ),
+            icon: const Icon(Icons.favorite),
             onPressed: () {
-              setState(() {
-                _showFavoritesOnly = !_showFavoritesOnly;
-              });
+              // Filter frasa favorit
+              phraseProvider.loadPhrases(
+                userId: authProvider.userId,
+                isFavorite: true,
+              );
             },
-            tooltip: 'Tampilkan favorit saja',
+            tooltip: 'Tampilkan Favorit',
           ),
           IconButton(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.refresh),
             onPressed: () {
-              _showFilterDialog();
+              // Refresh frasa
+              phraseProvider.refreshPhrases(userId: authProvider.userId);
             },
-            tooltip: 'Filter frasa',
-          ),
-          IconButton(
-            icon: const Icon(Icons.category),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoryManagementScreen(),
-                ),
-              ).then((_) {
-                // Refresh kategori setelah kembali dari halaman manajemen kategori
-                setState(() {});
-              });
-            },
-            tooltip: 'Kelola Kategori',
+            tooltip: 'Refresh',
           ),
         ],
       ),
       body: Column(
         children: [
-          // Search bar
+          // Search Box
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8.0),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Cari frasa...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchPhrases('');
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                filled: true,
               ),
               onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
+                // Tunggu pengguna selesai mengetik
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  // Pastikan value masih sama (pengguna tidak mengetik lagi)
+                  if (_searchController.text == value) {
+                    _searchPhrases(value);
+                  }
                 });
-                if (value.isEmpty) {
-                  _loadPhrases();
-                } else {
-                  Provider.of<PhraseProvider>(context, listen: false)
-                      .searchPhrases(value);
-                }
               },
             ),
           ),
 
-          // Phrase list
-          Expanded(
-            child: Consumer<PhraseProvider>(
-              builder: (context, phraseProvider, child) {
-                if (phraseProvider.isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                if (phraseProvider.error != null) {
-                  return Center(
-                    child: Text(
-                      'Error: ${phraseProvider.error}',
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
-
-                final filteredPhrases = _filterPhrases(phraseProvider.phrases);
-
-                if (filteredPhrases.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.translate,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Tidak ada frasa yang sesuai.',
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _addNewPhrase,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Tambah Frasa Baru'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  onRefresh: _loadPhrases,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: filteredPhrases.length,
-                    itemBuilder: (context, index) {
-                      final phrase = filteredPhrases[index];
-                      return PhraseCard(
-                        phrase: phrase,
-                        onEdit: () => _editPhrase(phrase),
-                        onDelete: () => _deletePhrase(phrase),
-                        onFavoriteToggle: () => _toggleFavorite(phrase),
-                      );
-                    },
-                  ),
-                );
-              },
+          // Loading indicator
+          if (phraseProvider.isLoading || _isLoading)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addNewPhrase,
-        icon: const Icon(Icons.add),
-        label: const Text('Frasa Baru'),
-      ),
-    );
-  }
 
-  // Filter frasa berdasarkan kriteria yang dipilih
-  List<Phrase> _filterPhrases(List<Phrase> phrases) {
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      phrases = phrases
-          .where((phrase) =>
-              phrase.originalText.toLowerCase().contains(query) ||
-              phrase.translatedText.toLowerCase().contains(query) ||
-              (phrase.notes?.toLowerCase().contains(query) ?? false))
-          .toList();
-    }
-
-    if (_showFavoritesOnly) {
-      phrases = phrases.where((phrase) => phrase.isFavorite).toList();
-    }
-
-    return phrases;
-  }
-
-  // Dialog untuk filter
-  void _showFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Filter Frasa'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Filter bahasa
-                    Consumer<LanguageProvider>(
-                      builder: (context, languageProvider, child) {
-                        return DropdownButtonFormField<String?>(
-                          decoration: const InputDecoration(
-                            labelText: 'Bahasa',
-                            border: OutlineInputBorder(),
-                          ),
-                          value: _selectedLanguageId,
-                          items: [
-                            const DropdownMenuItem(
-                              value: null,
-                              child: Text('Semua Bahasa'),
-                            ),
-                            ...languageProvider.languages.map((language) {
-                              return DropdownMenuItem(
-                                value: language.id,
-                                child: Text(language.name),
-                              );
-                            }).toList(),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedLanguageId = value;
-                              // Reset kategori jika bahasa berubah
-                              _selectedCategoryId = null;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Filter kategori
-                    Consumer2<CategoryProvider, LanguageProvider>(
-                      builder:
-                          (context, categoryProvider, languageProvider, child) {
-                        // Filter kategori berdasarkan bahasa yang dipilih
-                        final filteredCategories = categoryProvider.categories
-                            .where(
-                              (category) =>
-                                  category.languageId == null ||
-                                  category.languageId == _selectedLanguageId,
-                            )
-                            .toList();
-
-                        return DropdownButtonFormField<String?>(
-                          decoration: const InputDecoration(
-                            labelText: 'Kategori',
-                            border: OutlineInputBorder(),
-                          ),
-                          value: _selectedCategoryId,
-                          items: [
-                            const DropdownMenuItem(
-                              value: null,
-                              child: Text('Semua Kategori'),
-                            ),
-                            ...filteredCategories.map((category) {
-                              return DropdownMenuItem(
-                                value: category.id,
-                                child: Text(category.name),
-                              );
-                            }).toList(),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCategoryId = value;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Filter favorit
-                    CheckboxListTile(
-                      title: const Text('Hanya tampilkan favorit'),
-                      value: _showFavoritesOnly,
-                      onChanged: (value) {
-                        setState(() {
-                          _showFavoritesOnly = value ?? false;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+          // Error message
+          if (phraseProvider.error != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                phraseProvider.error!,
+                style: const TextStyle(color: Colors.red),
               ),
-              actions: [
-                TextButton(
-                  child: const Text('Reset'),
-                  onPressed: () {
-                    setState(() {
-                      _searchQuery = '';
-                      _showFavoritesOnly = false;
-                      _selectedLanguageId = null;
-                      _selectedCategoryId = null;
-                    });
-                  },
-                ),
-                ElevatedButton(
-                  child: const Text('Terapkan'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // Terapkan filter
-                    _loadPhrases();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      },
+            ),
+
+          // List frasa
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => phraseProvider.refreshPhrases(
+                userId: authProvider.userId,
+              ),
+              child: phraseProvider.phrases.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      itemCount: phraseProvider.phrases.length,
+                      itemBuilder: (context, index) {
+                        final phrase = phraseProvider.phrases[index];
+                        return PhraseCard(
+                          phrase: phrase,
+                          onDeleted: () {
+                            // Auto refresh setelah hapus
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Frasa berhasil dihapus'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          },
+                          onUpdated: () {
+                            // Auto refresh setelah update
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Frasa berhasil diperbarui'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToAddPhrase,
+        child: const Icon(Icons.add),
+        tooltip: 'Tambah Frasa Baru',
+      ),
     );
   }
 
-  void _addNewPhrase() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddPhraseScreen(),
-      ),
-    ).then((_) => _loadPhrases());
-  }
-
-  void _editPhrase(Phrase phrase) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddPhraseScreen(phraseToEdit: phrase),
-      ),
-    ).then((_) => _loadPhrases());
-  }
-
-  void _deletePhrase(Phrase phrase) {
-    // Konfirmasi penghapusan
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Frasa'),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus frasa "${phrase.originalText}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Batal'),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.note_alt_outlined,
+            size: 80,
+            color: Colors.grey,
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _confirmDeletePhrase(phrase);
-            },
-            child: const Text('Hapus'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          const SizedBox(height: 16),
+          const Text(
+            'Belum ada frasa',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Tambahkan frasa baru dengan menekan tombol + di bawah',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _navigateToAddPhrase,
+            icon: const Icon(Icons.add),
+            label: const Text('Tambah Frasa Baru'),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _confirmDeletePhrase(Phrase phrase) async {
-    if (phrase.id == null) return;
-
-    final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
-    final success = await phraseProvider.deletePhrase(phrase.id!);
-
-    if (success) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Frasa berhasil dihapus')),
-      );
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Gagal menghapus frasa: ${phraseProvider.error}')),
-      );
-    }
-  }
-
-  Future<void> _toggleFavorite(Phrase phrase) async {
-    final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
-    await phraseProvider.toggleFavorite(phrase);
   }
 }

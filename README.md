@@ -1,73 +1,107 @@
-# netzlingo
+# NetzLingo - Aplikasi Penyimpan Frasa Bahasa
 
-A new Flutter project.
+## Gambaran Umum
 
-## Getting Started
+NetzLingo adalah aplikasi mobile yang memungkinkan pengguna menyimpan, mengorganisir, dan mempelajari frasa dalam berbagai bahasa. Aplikasi dikembangkan dengan Flutter dan menggunakan AppWrite sebagai backend cloud.
 
-This project is a starting point for a Flutter application.
+## Status Pengembangan
 
-A few resources to get you started if this is your first Flutter project:
+Status: **Pengembangan Aktif** (MVP - Minimum Viable Product)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Fitur yang Sudah Diimplementasikan
+- ✅ Autentikasi Pengguna (Registrasi, Login, Logout)
+- ✅ Struktur Dasar Aplikasi dengan State Management (Provider)
+- ✅ Integrasi dengan AppWrite Cloud
+- ✅ UI Dasar untuk Manajemen Frasa (Tampilan Daftar & Kartu Frasa)
+- ✅ Sistem Data Universal untuk Akses Publik
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Fitur yang Sedang Dikerjakan
+- 🟡 CRUD Frasa (Perbaikan Bug Penambahan & Update Frasa)
+- 🟡 Penanganan Permissions AppWrite
+- 🟡 Sistem Fallback Data untuk Keandalan
 
-## NetzLingo - Aplikasi Belajar Bahasa dengan Spaced Repetition
+### Fitur yang Direncanakan
+- ⬜ Manajemen Kategori & Tag yang Lebih Baik
+- ⬜ Mode Pembelajaran (Flashcard, Quiz, Typing)
+- ⬜ Pengaturan Tema Aplikasi (Terang/Gelap)
+- ⬜ Integrasi Text-to-Speech
 
-NetzLingo adalah aplikasi pembelajaran bahasa yang menggunakan teknik spaced repetition untuk membantu pengguna mengingat kata dan frasa dengan lebih efektif.
+## Perubahan Terbaru
 
-### Fitur Terbaru
+### Perbaikan Bug CRUD Frasa
+- Penanganan error yang lebih baik untuk mengatasi masalah permissions AppWrite
+- Implementasi sistem fallback untuk menghindari crash saat operasi database gagal
+- Perbaikan mekanisme pembuatan/pembaruan frasa dengan pendekatan yang lebih robust
 
-1. **Algoritma Spaced Repetition**
-   - Implementasi algoritma SuperMemo-2 (SM-2) untuk pengaturan interval pengulangan
-   - Sistem penilaian kualitas ingatan dengan skala 0-5
-   - Perhitungan otomatis interval dan ease factor berdasarkan performa pengguna
+### Revisi Rencana Iterasi
+- Iterasi pengembangan telah disederhanakan menjadi 4 iterasi utama
+- Fokus pada fungsi dasar yang stabil daripada fitur kompleks
+- Penundaan fitur statistik dan fitur premium
 
-2. **Mode Latihan**
-   - Flashcard: Latihan dengan kartu bolak-balik
-   - Quiz: Latihan dengan pilihan ganda
-   - Typing: Latihan dengan mengetik jawaban
-   - Spaced Repetition: Latihan dengan interval pengulangan adaptif
+## Panduan Pengembangan
 
-3. **Akses Universal**
-   - Akses ke fitur belajar untuk semua jenis akun (termasuk tanpa login)
-   - Data universal yang tersedia untuk akses publik
-   - Sistem fallback bertingkat untuk memastikan aplikasi tetap berfungsi
-
-### Progress Pengembangan
-
-- **Iterasi 1: Autentikasi & Struktur Dasar** - ✅ Selesai (100%)
-- **Iterasi 2: Sistem Pembelajaran & Kategori** - 🟡 Sedang Berjalan (78%)
-- **Iterasi 3: Premium Features & Monetisasi** - 🔴 Belum Dimulai (0%)
-- **Iterasi 4: Notifikasi & TTS** - 🔴 Belum Dimulai (0%)
-- **Iterasi 5: Import/Export & UI/UX** - 🔴 Belum Dimulai (0%)
-
-### Teknologi yang Digunakan
-
-- Flutter untuk pengembangan cross-platform
-- Appwrite sebagai backend cloud
-- Provider untuk state management
-- Flutter TTS untuk text-to-speech
-
-### Instalasi
-
-```bash
-# Clone repository
-git clone https://github.com/username/netzlingo.git
-
-# Masuk ke direktori proyek
-cd netzlingo
-
-# Install dependencies
-flutter pub get
-
-# Jalankan aplikasi
-flutter run
+### Struktur Proyek
+```
+lib/
+  ├── config/         # Konfigurasi AppWrite
+  ├── models/         # Model data aplikasi
+  ├── providers/      # Provider State Management
+  ├── screens/        # UI Screens
+  ├── services/       # Service Layer & API
+  ├── utils/          # Helper & Utilitas
+  └── widgets/        # Widget yang dapat digunakan kembali
 ```
 
-### Kontributor
+### Setup Pengembangan
+1. Clone repository
+2. `flutter pub get` untuk mendapatkan dependencies
+3. Sesuaikan `lib/config/appwrite_constants.dart` dengan informasi project AppWrite Anda
+4. `flutter run` untuk menjalankan aplikasi
 
-- Rizki Alan Habibi - 221240001238
+### Fokus Pengembangan Berikutnya
+1. **Perbaikan CRUD Frasa**
+   - Fokus pada perbaikan bugs yang ada di `phrase_service.dart`
+   - Pastikan fungsi tambah, edit, dan hapus frasa berjalan dengan stabil
+
+2. **Penyempurnaan UI Dasar**
+   - Pastikan UI responsif dan menarik
+   - Implementasi feedback visual yang baik untuk pengguna
+
+3. **Mode Pembelajaran Dasar**
+   - Mulai dengan mode Flashcard sederhana
+   - Pastikan akses universal ke data berfungsi dengan baik
+
+## Alur Pengembangan 
+
+```mermaid
+graph TD
+    A[Perbaikan CRUD Frasa] --> B[Manajemen Kategori & Tag]
+    B --> C[Mode Pembelajaran Dasar]
+    C --> D[Penyempurnaan UI/UX]
+    D --> E[Deployment]
+
+    style A fill:#ffcc00,stroke:#ff9900,stroke-width:2px
+    style B fill:#f9f9f9,stroke:#cccccc,stroke-width:2px  
+    style C fill:#f9f9f9,stroke:#cccccc,stroke-width:2px
+    style D fill:#f9f9f9,stroke:#cccccc,stroke-width:2px
+    style E fill:#f9f9f9,stroke:#cccccc,stroke-width:2px
+```
+
+## Pengembang
+
+- **Rizki Alan Habibi** - Pengembang Utama
+
+## Catatan Penggunaan AppWrite
+
+Untuk mengatasi masalah permissions di AppWrite:
+
+1. **Collections Settings**
+   - Pastikan collection memiliki permission `read` untuk `any`
+   - Gunakan Document Security untuk kontrol akses lebih detail
+
+2. **Pendekatan Fallback Data**
+   - User Pribadi → Data Universal → Data Statis Bawaan
+
+## Lisensi
+
+Hak Cipta © 2025 NetzLingo

@@ -1,13 +1,10 @@
-# Rencana Iterasi & Progress MVP Aplikasi NetzLingo
+# Rencana Iterasi & Progress MVP Aplikasi NetzLingo (Revisi)
 
-Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [04-06-2025]
+Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [08-06-2025]
 
-## Pra-Iterasi: Persiapan & Setup Awal (Estimasi: 1 Minggu)
+## Pra-Iterasi: Persiapan & Setup Awal (Selesai)
 
-- Total Tasks: 7
-- Tasks Selesai: 7
-- Progress Iterasi: 100%
-  - ✅ Pahami SRS Lagi
+- Progress Iterasi: 100% ✅
   - ✅ Setup Lingkungan Flutter (SDK, Editor, Emulator/Device)
   - ✅ Setup Project NetzLingo (Instalasi Lokal)
   - ✅ Buat Struktur Project Flutter Awal (Folders, Basic Files)
@@ -15,608 +12,106 @@ Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [04-06-202
   - ✅ Setup AppWrite & Project Configuration
   - ✅ Konfigurasi Authentication System
 
-## Iterasi 1: Autentikasi & Struktur Dasar (Estimasi: 2 Minggu)
+## Iterasi 1: Autentikasi & Manajemen Frasa Dasar (Fokus: CRUD yang Bekerja) 🟡
 
-- Total Tasks: 10
-- Tasks Selesai: 10
-- Progress Iterasi: 100%
+- Progress Iterasi: 70% (Sedang Berjalan)
   - ✅ Implementasi User Authentication (Register, Login, Logout)
-  - ✅ User Profile & Settings
-  - ✅ Setup AppWrite Collections
-  - ✅ Implementasi Model Frasa & Data Dasar
-  - ✅ Provider untuk Manajemen Frasa
+  - ✅ UI: Form Tambah & Edit Frasa
   - ✅ UI: List Frasa dengan Card
-  - ✅ UI: Form Tambah Frasa
-  - ✅ UI: Form Edit Frasa
   - ✅ Fitur Hapus Frasa
-  - ✅ Implementasi Sync Data
+  - 🟡 **Perbaikan CRUD Frasa** (Prioritas: memperbaiki bug saat menambah frasa)
+  - 🟡 **Perbaikan Permissions AppWrite** (untuk memastikan akses pengguna berfungsi)
+  - 🟡 Implementasi Sistem Fallback Data Universal
+  - ⬜ Penyempurnaan UI Manajemen Frasa
 
-## Iterasi 2: Sistem Pembelajaran & Kategori (Estimasi: 2 Minggu)
+## Iterasi 2: Kategori & Organisasi (Fokus: Fitur Pengorganisasian) ⬜
 
-- Total Tasks: 9
-- Tasks Selesai: 7
-- Progress Iterasi: 78%
-  - ✅ Implementasi Kategori & Tag untuk Frasa
-  - ✅ Integrasi Kategori pada Form Frasa
-  - ✅ Implementasi Akses Universal untuk Tab Belajar (NEW)
-  - ✅ Mode Latihan: Flashcard
-  - ✅ Mode Latihan: Quiz
-  - ✅ Mode Latihan: Typing
-  - ✅ Implementasi Algoritma Spaced Repetition
-  - ⬜ Pelacakan Progress Belajar
-  - ⬜ Implementasi Pencarian & Filter Lanjutan
+- Progress Iterasi: 0% (Belum dimulai)
+  - ⬜ Implementasi Kategori untuk Frasa (dengan UI yang intuitif)
+  - ⬜ Implementasi Tag untuk Frasa
+  - ⬜ Fitur Pencarian Sederhana
+  - ⬜ Filter Frasa Berdasarkan Kategori
+  - ⬜ Filter Frasa Berdasarkan Bahasa
+  - ⬜ Manajemen Bahasa
+  - ⬜ Optimasi Performa Database Query
 
-## Iterasi 3: Premium Features & Monetisasi (Estimasi: 2 Minggu)
+## Iterasi 3: Mode Pembelajaran Dasar ⬜
 
-- Total Tasks: 6
-- Tasks Selesai: 0
-- Progress Iterasi: 0%
-  - ⬜ Batasan 10 Sesi untuk User Free
-  - ⬜ Implementasi Subscription Model
-  - ⬜ Integrasi Pembayaran
-  - ⬜ Premium Feature: Unlimited Sessions
-  - ⬜ Premium Feature: Advanced Statistics
-  - ⬜ User Dashboard (Free vs Premium)
+- Progress Iterasi: 0% (Belum dimulai)
+  - ⬜ Mode Latihan: Flashcard Sederhana
+  - ⬜ Mode Latihan: Quiz Pilihan Ganda
+  - ⬜ Mode Latihan: Pengetikan
+  - ⬜ Implementasi TTS Dasar (Text-to-Speech)
+  - ⬜ Transisi Antar Kartu yang Mulus
+  - ⬜ Tampilan Skor dan Progres Latihan
+  - ⬜ Akses Universal untuk Mode Latihan
 
-## Iterasi 4: Notifikasi & TTS (Estimasi: 2 Minggu)
+## Iterasi 4: Penyempurnaan UI/UX & Deployment ⬜
 
-- Total Tasks: 6
-- Tasks Selesai: 0
-- Progress Iterasi: 0%
-  - ⬜ Implementasi TTS Service
-  - ⬜ Integrasi TTS dengan Mode Latihan
-  - ⬜ Sistem Notifikasi (Push Notifications)
-  - ⬜ Pengingat Cerdas
-  - ⬜ Jadwal Notifikasi
-  - ⬜ Preferensi Notifikasi
-
-## Iterasi 5: Import/Export & UI/UX (Estimasi: 2 Minggu)
-
-- Total Tasks: 6
-- Tasks Selesai: 0
-- Progress Iterasi: 0%
-  - ⬜ Fitur Export Frasa (CSV/JSON)
-  - ⬜ Fitur Import Frasa (CSV/JSON)
-  - ⬜ Backup & Restore Data ke Cloud
-  - ⬜ Penyempurnaan UI/UX Aplikasi
-  - ⬜ Tema Terang/Gelap
-  - ⬜ Optimasi Performa Aplikasi
-
-## Testing & Deployment (Estimasi: 2 Minggu)
-
-- Total Tasks: 5
-- Tasks Selesai: 0
-- Progress Iterasi: 0%
-  - ⬜ Testing Internal
-  - ⬜ Pengujian Pengguna
-  - ⬜ Perbaikan Bug & Issue
-  - ⬜ Persiapan Rilis
-  - ⬜ Deployment ke Play Store
+- Progress Iterasi: 0% (Belum dimulai)
+  - ⬜ Penyempurnaan UI Secara Keseluruhan
+  - ⬜ Implementasi Tema Terang/Gelap
+  - ⬜ Optimasi untuk Berbagai Ukuran Layar
+  - ⬜ Optimasi Kinerja Aplikasi
+  - ⬜ Testing Fungsional Menyeluruh
+  - ⬜ Perbaikan Bug Final
+  - ⬜ Dokumentasi Pengguna
+  - ⬜ Deployment ke Play Store (Alpha/Beta)
 
 ## Gantt Chart Timeline
 
 ```mermaid
 gantt
-    title Alur Iterasi Pengembangan MVP NetzLingo
+    title Alur Iterasi Pengembangan MVP NetzLingo (Revisi)
     dateFormat  YYYY-MM-DD
     section Persiapan
-    Perencanaan & Desain          :a1, 2025-06-01, 2d
-    Setup Lingkungan & AppWrite   :a2, after a1, 5d
+    Setup Lingkungan & AppWrite   :done, a1, 2025-06-01, 5d
     section Pengembangan
-    Iterasi 1: Autentikasi & Struktur Dasar   :b1, after a2, 12d
-    Iterasi 2: Sistem Pembelajaran & Kategori :b2, 2025-06-04, 7d
-    Iterasi 3: Premium Features & Monetisasi  :b3, 2025-06-18, 7d
-    Iterasi 4: Notifikasi & TTS              :b4, 2025-06-25, 7d
-    Iterasi 5: Import/Export & UI/UX          :b5, 2025-07-02, 7d
+    Iterasi 1: Autentikasi & CRUD Frasa    :active, b1, 2025-06-06, 14d
+    Iterasi 2: Kategori & Organisasi       :b2, after b1, 14d
+    Iterasi 3: Mode Pembelajaran Dasar     :b3, after b2, 14d
+    Iterasi 4: Penyempurnaan & Deployment  :b4, after b3, 14d
     section Testing
-    Testing Internal              :c1, 2025-07-09, 5d
-    User Testing                  :c2, 2025-07-15, 5d
-    Perbaikan Bug                 :c3, 2025-07-20, 5d
-    section Deployment
-    Persiapan Deployment          :d1, 2025-07-25, 5d
-    Deployment MVP                :d2, 2025-07-30, 5d
-    Monitoring & Evaluasi         :d3, 2025-08-04, 5d
+    Testing Internal & Bug Fixing          :c1, 2025-08-01, 7d
 ```
 
-## Flowchart Proses Pengembangan
+## Fokus Perbaikan Utama
 
-> **Status Progress Saat Ini:**
-> - Pra-Iterasi: ✅ Selesai (100%)
-> - Iterasi 1 (Autentikasi & Struktur Dasar): ✅ Selesai (100%)
-> - Iterasi 2 (Sistem Pembelajaran & Kategori): 🟡 Sedang Berjalan (78%)
+### Perbaikan CRUD Frasa
+1. **Permasalahan Permissions**: Terdapat masalah dengan izin Appwrite saat menambah/mengubah frasa
+   - Solusi: Perbaiki struktur permissions dengan format yang konsisten
+   - Implementasi fallback ke mode tanpa permissions jika gagal
 
-```mermaid
-flowchart TD
-    Start([Mulai Proyek]) --> Prep[Persiapan & Setup]
-    Prep --> Auth[Iterasi 1: Autentikasi & Struktur Dasar]
-    Auth --> Pembelajaran[Iterasi 2: Sistem Pembelajaran & Kategori]
-    Pembelajaran --> Premium[Iterasi 3: Premium Features & Monetisasi]
-    Premium --> Notifikasi[Iterasi 4: Notifikasi & TTS]
-    Notifikasi --> ImportExport[Iterasi 5: Import/Export & UI/UX]
-    ImportExport --> Test[Testing & Perbaikan]
-    Test --> Deploy[Deployment MVP]
-    Deploy --> Eval[Evaluasi & Feedback]
-    Eval --> NextIter{Lanjut ke Iterasi Berikutnya?}
-    NextIter -->|Ya| NextFeature[Fitur Baru Post-MVP]
-    NextIter -->|Tidak| End([Selesai])
-    
-    subgraph "Iterasi 1: Autentikasi & Struktur Dasar (2 minggu)"
-        Auth1[User Authentication] --> AppWrite1[Setup AppWrite]
-        AppWrite1 --> Model1[Implementasi Model Data]
-        Model1 --> CRUD1[CRUD Operasi]
-        CRUD1 --> UI1[UI Dasar Manajemen Frasa]
-    end
-    
-    subgraph "Iterasi 2: Sistem Pembelajaran & Kategori (2 minggu)"
-        Cat1[Kategori & Tag] --> Uni1[Akses Universal]
-        Uni1 --> SR1[Mode Flashcard]
-        SR1 --> Flash1[Mode Quiz & Typing]
-        Flash1 --> Track1[Algoritma SR & Tracking Progress]
-    end
-    
-    subgraph "Iterasi 3: Premium Features & Monetisasi (2 minggu)"
-        Sub1[Subscription Model] --> Pay1[Integrasi Pembayaran]
-        Pay1 --> Unlim1[Unlimited Sessions]
-        Unlim1 --> Stats1[Advanced Statistics]
-        Stats1 --> Dash1[User Dashboard]
-    end
-    
-    subgraph "Iterasi 4: Notifikasi & TTS (2 minggu)"
-        TTS1[Integrasi Text-to-Speech] --> Push1[Push Notifications]
-        Push1 --> Smart1[Pengingat Cerdas]
-        Smart1 --> Pref1[Pengaturan Preferensi Notifikasi]
-    end
-    
-    subgraph "Iterasi 5: Import/Export & UI/UX (2 minggu)"
-        EX1[Fitur Export/Import] --> Backup1[Backup ke Cloud]
-        Backup1 --> UIUX1[Penyempurnaan UI/UX]
-        UIUX1 --> Optim1[Optimasi Performa]
-    end
-```
+2. **Manajemen Error yang Lebih Baik**:
+   - Tambahkan penanganan error khusus untuk kasus umum
+   - Berikan pesan error yang lebih informatif kepada pengguna
+   - Implementasi sistem fallback bertingkat
 
-## Mindmap Iterasi
-
-```mermaid
-mindmap
-    root((NetzLingo MVP))
-        Frontend
-            Flutter
-            Dart
-            Provider State Management
-            Material Design
-        Cloud Storage
-            AppWrite
-            Authentication
-            Database Collections
-            Storage
-            Functions
-        Fitur Utama
-            Manajemen Frasa
-                Tambah/Edit/Hapus
-                Kategori & Tag
-                Favorit & Prioritas
-                Pencarian & Filter
-            Sistem Pembelajaran
-                Spaced Repetition
-                Flashcard Mode
-                Quiz Mode
-                Tracking Progress
-                Akses Universal
-            Monetisasi
-                User Free vs Premium
-                Subscription Model
-                Payment Integration
-                Premium Features
-            Notifikasi & Suara
-                Pengingat Belajar
-                Text-to-Speech
-                Push Notifications
-                Pengingat Cerdas
-            Personalisasi
-                Tema Aplikasi
-                Bahasa Antarmuka
-                Mode Latihan
-                Statistik & Laporan
-```
-
-## Kanban Board Status
-
-> **Status Progress Saat Ini:**
-> - 🟢 Selesai: Persiapan, Autentikasi & Struktur Dasar
-> - 🟡 Sedang Dikerjakan: Sistem Pembelajaran & Kategori
-> - 🔴 Belum Dimulai: Premium Features, Notifikasi & TTS, Import/Export & UI/UX, Testing, Deployment
-
-```mermaid
-stateDiagram-v2
-    [*] --> Persiapan
-    Persiapan --> Autentikasi
-    Autentikasi --> SistemPembelajaran
-    SistemPembelajaran --> PremiumFeatures
-    PremiumFeatures --> NotifikasiTTS
-    NotifikasiTTS --> ImportExportUIUX
-    ImportExportUIUX --> Testing
-    Testing --> Deployment
-    Deployment --> [*]
-
-    state Persiapan {
-        [*] --> DesainProyek
-        DesainProyek --> SetupLingkungan
-        SetupLingkungan --> SetupAppWrite
-    }
-
-    state Autentikasi {
-        [*] --> UserAuth
-        UserAuth --> SetupCollections
-        SetupCollections --> ModelData
-        ModelData --> CRUDOperasi
-    }
-
-    state SistemPembelajaran {
-        [*] --> KategoriTag
-        KategoriTag --> AksesUniversal
-        AksesUniversal --> ModeBelajar
-        ModeBelajar --> AlgoritmaSR
-    }
-
-    state PremiumFeatures {
-        [*] --> SubscriptionModel
-        SubscriptionModel --> IntegrasiPembayaran
-        IntegrasiPembayaran --> FiturPremium
-        FiturPremium --> UserDashboard
-    }
-
-    state NotifikasiTTS {
-        [*] --> IntegrasiTTS
-        IntegrasiTTS --> PushNotifications
-        PushNotifications --> PengingatCerdas
-        PengingatCerdas --> PengaturanPreferensi
-    }
-
-    state ImportExportUIUX {
-        [*] --> FiturExportImport
-        FiturExportImport --> BackupRestore
-        BackupRestore --> PenyempurnaanUIUX
-        PenyempurnaanUIUX --> OptimasiPerforma
-    }
-
-    state Testing {
-        [*] --> InternalTest
-        InternalTest --> UserTest
-        UserTest --> BugFix
-    }
-
-    state Deployment {
-        [*] --> PreDeploy
-        PreDeploy --> MVPRelease
-        MVPRelease --> Monitoring
-    }
-```
-
-## Ringkasan Progress per Iterasi
-
-| Iterasi | Status | Durasi | Deliverables |
-|---------|--------|---------|--------------|
-| Persiapan | 🟢 Complete | 1 minggu | Desain, Setup Proyek, AppWrite Config |
-| Autentikasi & Struktur Dasar | 🟢 Complete | 2 minggu | Auth, AppWrite Collections, CRUD, UI Dasar |
-| Sistem Pembelajaran & Kategori | 🟡 In Progress | 2 minggu | Kategori, Akses Universal, Mode Latihan, Tracking |
-| Premium Features & Monetisasi | 🔴 Not Started | 2 minggu | Subscription, Payment, Premium Features |
-| Notifikasi & TTS | 🔴 Not Started | 2 minggu | Text-to-Speech, Push Notifications, Pengingat |
-| Import/Export & UI/UX | 🔴 Not Started | 2 minggu | Import/Export, Backup, UI/UX Final |
-| Testing | 🔴 Not Started | 3 minggu | Internal Test, User Test, Bug Fix |
-| Deployment | 🔴 Not Started | 3 minggu | Persiapan, Release, Monitoring |
-
-Legend:
-- 🔴 Not Started
-- 🟡 In Progress
-- 🟢 Complete
-- ✅ Finished
-
-## Struktur Database AppWrite
-
-```mermaid
-erDiagram
-    USERS ||--o{ PHRASES : creates
-    USERS ||--o{ SUBSCRIPTIONS : has
-    USERS ||--o{ STUDY_SESSIONS : completes
-    LANGUAGES ||--o{ PHRASES : contains
-    LANGUAGES ||--o{ CATEGORIES : has
-    CATEGORIES ||--o{ PHRASES : organizes
-    PHRASES ||--o{ REVIEW_HISTORY : tracks
-    PHRASES ||--o{ PHRASE_TAG : has
-    TAGS ||--o{ PHRASE_TAG : assigned_to
-    PHRASES ||--o{ STUDY_SESSIONS : includes
-    CATEGORIES ||--o{ STUDY_SESSIONS : focuses_on
-    LANGUAGES ||--o{ STUDY_SESSIONS : target_language
-    
-    USERS {
-        string id PK
-        string name
-        string email
-        datetime created_at
-        datetime updated_at
-        bool is_premium
-        int daily_goal
-        string preferred_language
-    }
-    
-    SUBSCRIPTIONS {
-        string id PK
-        string user_id FK
-        string plan_type
-        datetime start_date
-        datetime end_date
-        bool is_active
-        string payment_method
-    }
-    
-    LANGUAGES {
-        string id PK
-        string name
-        string code
-        string flag_icon
-        datetime created_at
-        datetime updated_at
-    }
-    
-    CATEGORIES {
-        string id PK
-        string name
-        string description
-        string language_id FK
-        string user_id FK
-        datetime created_at
-        datetime updated_at
-    }
-    
-    PHRASES {
-        string id PK
-        string original_text
-        string translated_text
-        string language_id FK
-        string category_id FK
-        string user_id FK
-        string notes
-        boolean is_favorite
-        boolean is_public
-        int importance
-        datetime created_at
-        datetime updated_at
-    }
-    
-    TAGS {
-        string id PK
-        string name
-        string color
-        string user_id FK
-        datetime created_at
-    }
-    
-    PHRASE_TAG {
-        string id PK
-        string phrase_id FK
-        string tag_id FK
-    }
-    
-    REVIEW_HISTORY {
-        string id PK
-        string phrase_id FK
-        string user_id FK
-        datetime review_date
-        boolean was_correct
-        float ease_factor
-        int interval
-    }
-    
-    STUDY_SESSIONS {
-        string id PK
-        string user_id FK
-        datetime start_time
-        datetime end_time
-        int total_phrases
-        int correct_answers
-        string session_type
-        string language_id FK
-        string category_id FK
-    }
-    
-    SETTINGS {
-        string id PK
-        string user_id FK
-        string app_language
-        string theme
-        boolean is_dark_mode
-        boolean enable_tts
-        boolean enable_notifications
-        string notification_time
-        int daily_goal
-        datetime updated_at
-    }
-```
-
-## Catatan Penting Revisi:
-- Perubahan utama dari SQLite ke AppWrite sebagai database cloud
-- Penambahan fitur autentikasi pengguna (register, login, profile)
-- Implementasi sistem monetisasi dengan subscription model
-- Penambahan sinkronisasi data antar perangkat
-- Pemanfaatan push notifications untuk pengingat belajar
-- Backup & restore data ke cloud
-- **NEW: Implementasi mode akses universal untuk memastikan akses fitur Belajar oleh semua jenis akun**
-
-## Revisi dan Perbaikan yang Telah Dilakukan (Updated: 06-06-2025)
-
-1. **Implementasi Akses Universal**:
-   - Menambahkan mode pembelajaran universal yang berfungsi untuk semua jenis akun
-   - Pembuatan data universal dengan userId 'universal' tersedia untuk akses publik
-   - Sistem fallback bertingkat dari user data → universal data → static data
-
-2. **Perbaikan Error AppWrite**:
-   - Memperbaiki isu tipe data permissions (List<dynamic> → List<String>)
-   - Optimasi penggunaan permissions API dengan menghindari literal list
-   - Penanganan error 401 dengan beralih otomatis ke mode universal
-
-3. **Dokumentasi Teknis**:
-   - Membuat dokumentasi appwrite_configuration.md untuk panduan pengaturan izin
-   - Menambahkan troubleshooting tips untuk masalah umum
-
-4. **Penyempurnaan Mode Quiz**:
-   - Implementasi animasi transisi antar pertanyaan dengan FadeTransition
-   - Penambahan indikator visual untuk jawaban benar/salah
-   - Tampilan skor dalam bentuk grafis dengan CircularProgressIndicator
-   - Penambahan dialog bantuan untuk instruksi penggunaan
-   - UI yang lebih responsif dan menarik dengan tema yang konsisten
-
-5. **Penyempurnaan Mode Typing**:
-   - Implementasi sistem petunjuk (hint) untuk membantu pengguna
-   - Penambahan validasi jawaban dengan toleransi typo menggunakan algoritma Levenshtein
-   - Feedback visual yang lebih jelas untuk jawaban benar/salah
-   - Integrasi dengan Text-to-Speech untuk pengucapan frasa
-   - Animasi transisi yang lebih halus antar pertanyaan
-
-6. **Implementasi Algoritma Spaced Repetition**:
-   - Pengembangan algoritma SuperMemo-2 (SM-2) untuk pengaturan interval pengulangan
-   - Sistem penilaian kualitas ingatan dengan skala 0-5
-   - Perhitungan otomatis interval dan ease factor berdasarkan performa pengguna
-   - Implementasi UI untuk mode latihan Spaced Repetition dengan animasi transisi
-   - Integrasi dengan sistem review history untuk pelacakan progres jangka panjang
-
-## Rencana Pengerjaan Berikutnya (07-06-2025)
-
-1. **Pelacakan Progress Belajar**:
-   - Dashboard kemajuan belajar dengan metrik kunci (completion rate, retention)
-   - Visualisasi data belajar dengan grafik dan chart
-   - Sistem streak dan reward untuk memotivasi konsistensi
-
-2. **Implementasi Pencarian & Filter Lanjutan**:
-   - Fitur pencarian frasa dengan filter multi-kriteria
-   - Filter berdasarkan kategori, bahasa, dan tag
-   - Sorting dan grouping frasa untuk pengalaman pengguna yang lebih baik
-
-3. **Persiapan Fitur Premium**:
-   - Implementasi batasan 10 sesi untuk user free
-   - Desain UI untuk subscription model
-   - Persiapan integrasi pembayaran
-
-4. **Optimasi Performa & Stabilitas**:
-   - Optimasi query database untuk mengurangi latency
+3. **Optimasi Performa Kueri**:
+   - Batasi jumlah kueri database
    - Implementasi caching untuk data yang sering diakses
-   - Perbaikan error handling dan fallback mechanism
 
-## Struktur AppWrite yang Direvisi
+### Arsitektur Data Universal
 
-1. **Perbaikan Setting Permissions**:
-   - Collection Level: Menambahkan role 'any' dan 'guests' dengan permission read
-   - Document Level: Menggunakan `List<String>` untuk permissions dengan format yang konsisten
-   - Universal Access: Data dengan user_id='universal' dapat diakses semua pengguna
+Untuk memastikan pengguna selalu memiliki akses ke frasa, kami mengimplementasikan sistem data berlapis:
 
-2. **Mode Fallback**:
-   - Sistem layering data: User Personal → Universal → Static Default
-   - Penanganan error bertingkat untuk memastikan aplikasi tetap berfungsi meski terjadi error
+1. **Layer 1**: Data pribadi pengguna (user_id = ID pengguna)
+2. **Layer 2**: Data universal (user_id = 'universal')
+3. **Layer 3**: Data statis bawaan aplikasi (fallback terakhir)
 
-## Rincian Implementasi AppWrite & Flutter
+## Fitur yang Ditunda/Dihapus
 
-### Persiapan (1 minggu)
+Fitur berikut telah ditunda atau dihapus dari MVP untuk menyederhanakan pengembangan:
 
-#### Setup Project
-```bash
-# Inisialisasi proyek Flutter
-flutter create netzlingo
-cd netzlingo
+1. ~~Algoritma Spaced Repetition yang kompleks~~
+2. ~~Fitur Statistik Pembelajaran~~
+3. ~~Model Subscription Premium~~
+4. ~~Fitur Import/Export Data~~
+5. ~~Fitur Notifikasi~~
 
-# Instalasi dependensi
-flutter pub add appwrite
-flutter pub add provider
-flutter pub add flutter_tts
-flutter pub add firebase_messaging
-flutter pub add firebase_core
-flutter pub add shared_preferences
-flutter pub add intl
-flutter pub add uuid
-flutter pub add csv
-flutter pub add file_picker
-flutter pub add permission_handler
-flutter pub add fl_chart
-flutter pub add flutter_secure_storage
-flutter pub add in_app_purchase
-```
+## Prioritas Sekarang
 
-#### Struktur Proyek
-```
-├── lib/
-│   ├── main.dart
-│   ├── app.dart
-│   ├── config/
-│   │   ├── appwrite_constants.dart
-│   │   └── app_constants.dart
-│   ├── screens/
-│   │   ├── auth/
-│   │   │   ├── login_screen.dart
-│   │   │   ├── register_screen.dart
-│   │   │   └── profile_screen.dart
-│   │   ├── home/
-│   │   ├── phrase_management/
-│   │   ├── study/
-│   │   ├── statistics/
-│   │   ├── subscription/
-│   │   └── settings/
-│   ├── widgets/
-│   │   ├── auth/
-│   │   ├── phrase/
-│   │   ├── study/
-│   │   ├── common/
-│   │   ├── subscription/
-│   │   └── statistics/
-│   ├── models/
-│   │   ├── user_model.dart
-│   │   ├── language.dart
-│   │   ├── category.dart
-│   │   ├── phrase.dart
-│   │   ├── tag.dart
-│   │   ├── review_history.dart
-│   │   ├── study_session.dart
-│   │   ├── subscription.dart
-│   │   └── settings.dart
-│   ├── providers/
-│   │   ├── auth_provider.dart
-│   │   ├── language_provider.dart
-│   │   ├── phrase_provider.dart
-│   │   ├── study_provider.dart
-│   │   ├── subscription_provider.dart
-│   │   └── settings_provider.dart
-│   ├── services/
-│   │   ├── appwrite_service.dart
-│   │   ├── auth_service.dart
-│   │   ├── database_service.dart
-│   │   ├── tts_service.dart
-│   │   ├── notification_service.dart
-│   │   ├── spaced_repetition_service.dart
-│   │   ├── subscription_service.dart
-│   │   └── import_export_service.dart
-│   └── utils/
-│       ├── constants.dart
-│       ├── helpers.dart
-│       ├── validators.dart
-│       └── formatters.dart
-├── assets/
-└── pubspec.yaml
-```
-
-## Implementasi Universal Access Mode (NEW)
-
-### Konfigurasi Permissions AppWrite
-```dart
-// Metode yang benar untuk mengatur permissions
-List<String> permissions = [];
-permissions.add(Permission.read(Role.any()));
-permissions.add(Permission.read(Role.users()));
-permissions.add(Permission.read(Role.guests()));
-permissions.add(Permission.update(Role.user(userId)));
-
-// Untuk data universal
-List<String> universalPermissions = [];
-universalPermissions.add(Permission.read(Role.any()));
-universalPermissions.add(Permission.read(Role.guests()));
-universalPermissions.add(Permission.update(Role.any()));
-```
-
-### Fallback Data Universal
-```
+1. **Perbaikan CRUD Frasa**: Memastikan pengguna dapat menambah, mengubah, dan menghapus frasa dengan andal
+2. **UI yang Sederhana namun Intuitif**: Fokus pada kemudahan penggunaan
+3. **Mode Pembelajaran Dasar**: Implementasi fitur pembelajaran yang fungsional tanpa kompleksitas berlebihan
+4. **Kestabilan Aplikasi**: Memastikan aplikasi berjalan tanpa crash
