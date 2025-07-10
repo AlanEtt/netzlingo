@@ -21,6 +21,8 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
   bool _isSearching = false;
   bool _isLoading = false;
   bool _isLoadingData = false;
+  bool _isShowingFavorites =
+      false; // Tambahkan state untuk melacak filter favorit
   DateTime _lastRefreshTime =
       DateTime.now().subtract(const Duration(minutes: 5));
 
@@ -195,6 +197,128 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
     }
   }
 
+  // Menampilkan semua frasa (pembatalan filter)
+  void _showAllPhrases() {
+    setState(() {
+      _isShowingFavorites = false;
+    });
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
+
+    // Set loading state untuk menunjukkan proses sedang berjalan
+    setState(() {
+      _isLoadingData = true;
+    });
+
+    // Gunakan AsyncHelper untuk operasi aman
+    AsyncHelper.runWithMounted(
+      state: this,
+      operation: () async {
+        // Muat semua frasa dengan force refresh untuk memastikan data terbaru
+        await phraseProvider.loadPhrases(
+          userId: authProvider.userId,
+          isFavorite: null, // Set null untuk menampilkan semua frasa
+          forceRefresh: true, // Paksa refresh untuk memastikan data akurat
+        );
+        return true;
+      },
+      onComplete: (_) {
+        if (mounted) {
+          setState(() {
+            _isLoadingData = false;
+          });
+        }
+      },
+      onError: (e) {
+        print('Error showing all phrases: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoadingData = false;
+          });
+        }
+      },
+    );
+  }
+
+  // Menampilkan hanya frasa favorit
+  void _showFavoritePhrases() {
+    setState(() {
+      _isShowingFavorites = true;
+    });
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
+
+    // Set loading state untuk menunjukkan proses sedang berjalan
+    setState(() {
+      _isLoadingData = true;
+    });
+
+    // Gunakan AsyncHelper untuk operasi aman
+    AsyncHelper.runWithMounted(
+      state: this,
+      operation: () async {
+        // Muat frasa favorit dengan force refresh untuk memastikan data terbaru
+        await phraseProvider.loadPhrases(
+          userId: authProvider.userId,
+          isFavorite: true, // Filter hanya frasa favorit
+          forceRefresh: true, // Paksa refresh untuk memastikan data akurat
+        );
+
+        // Validasi hasil - pastikan hanya frasa favorit yang tampil
+        final loadedPhrases = phraseProvider.phrases;
+        final nonFavoritePhrases =
+            loadedPhrases.where((p) => !p.isFavorite).toList();
+
+        if (nonFavoritePhrases.isNotEmpty) {
+          print(
+              "Warning: Found ${nonFavoritePhrases.length} non-favorite phrases after filtering");
+          // Filter lagi di sisi klien untuk memastikan
+          final filteredPhrases =
+              loadedPhrases.where((p) => p.isFavorite).toList();
+
+          // Update list phrases secara manual jika perlu
+          if (filteredPhrases.length != loadedPhrases.length) {
+            print(
+                "Manually filtering to ${filteredPhrases.length} favorite phrases");
+            // Ini akan memanggil metode internal di PhraseProvider
+            await phraseProvider.setFilteredPhrases(filteredPhrases);
+          }
+        }
+
+        return true;
+      },
+      onComplete: (_) {
+        if (mounted) {
+          setState(() {
+            _isLoadingData = false;
+          });
+        }
+      },
+      onError: (e) {
+        print('Error showing favorite phrases: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoadingData = false;
+          });
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -202,20 +326,24 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Frasa Saya'),
+        title: Text(_isShowingFavorites ? 'Frasa Favorit' : 'Frasa Saya'),
         actions: [
+          // Tombol filter favorit dengan indikator status aktif
           IconButton(
-            icon: const Icon(Icons.favorite),
+            icon: Icon(
+              Icons.favorite,
+              color: _isShowingFavorites ? Colors.red : null,
+            ),
             onPressed: _isLoadingData
                 ? null
                 : () {
-                    // Filter frasa favorit
-                    phraseProvider.loadPhrases(
-                      userId: authProvider.userId,
-                      isFavorite: true,
-                    );
+                    // Toggle status filter favorit
+                    _isShowingFavorites
+                        ? _showAllPhrases()
+                        : _showFavoritePhrases();
                   },
-            tooltip: 'Tampilkan Favorit',
+            tooltip:
+                _isShowingFavorites ? 'Tampilkan Semua' : 'Tampilkan Favorit',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -289,6 +417,9 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
                 if (!_isLoadingData) {
                   await phraseProvider.refreshPhrases(
                     userId: authProvider.userId,
+                    isFavorite: _isShowingFavorites
+                        ? true
+                        : null, // Pertahankan filter favorit saat refresh
                   );
                 }
               },
@@ -298,6 +429,12 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
                       itemCount: phraseProvider.phrases.length,
                       itemBuilder: (context, index) {
                         final phrase = phraseProvider.phrases[index];
+
+                        // Skip frasa yang tidak favorit jika filter favorit aktif
+                        if (_isShowingFavorites && !phrase.isFavorite) {
+                          return const SizedBox.shrink(); // Widget kosong
+                        }
+
                         return PhraseCard(
                           phrase: phrase,
                           onDeleted: () {

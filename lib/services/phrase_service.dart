@@ -593,6 +593,8 @@ class PhraseService {
   // Toggle favorite dengan validasi ownership
   Future<Phrase> toggleFavorite(Phrase phrase) async {
     try {
+      print("PhraseService: Toggling favorite for phrase ID: ${phrase.id}");
+
       // PERBAIKAN: Validasi ownership sebelum toggle favorite
       final document = await _databases.getDocument(
         databaseId: AppwriteConstants.databaseId,
@@ -607,10 +609,33 @@ class PhraseService {
         throw Exception("Anda tidak memiliki akses untuk mengubah frasa ini");
       }
 
+      // Buat salinan frasa dengan status favorit dibalik
       final updatedPhrase = phrase.copyWith(isFavorite: !phrase.isFavorite);
-      return await updatePhrase(updatedPhrase);
+
+      // Update document di Appwrite
+      try {
+        print(
+            "PhraseService: Updating is_favorite to ${updatedPhrase.isFavorite}");
+        final updatedDocument = await _databases.updateDocument(
+          databaseId: AppwriteConstants.databaseId,
+          collectionId: AppwriteConstants.phrasesCollection,
+          documentId: phrase.id,
+          data: {'is_favorite': updatedPhrase.isFavorite},
+        );
+
+        print("PhraseService: Favorite status updated successfully");
+        // Kembalikan object Phrase dari dokumen yang diperbarui
+        return Phrase.fromDocument(updatedDocument);
+      } catch (updateError) {
+        print("PhraseService: Error updating favorite status: $updateError");
+
+        // Coba cara alternatif jika gagal
+        final fullUpdate = await updatePhrase(updatedPhrase);
+        print("PhraseService: Full phrase update completed as fallback");
+        return fullUpdate;
+      }
     } catch (e) {
-      print("Error toggling favorite: $e");
+      print("PhraseService: Error in toggleFavorite: $e");
       rethrow;
     }
   }

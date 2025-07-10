@@ -91,6 +91,7 @@ class _PhraseCardState extends State<PhraseCard> {
                     widget.phrase.isFavorite
                         ? Icons.favorite
                         : Icons.favorite_border,
+                    color: widget.phrase.isFavorite ? Colors.red : null,
                   ),
                   onPressed: canModify ? _toggleFavorite : null,
                   tooltip: canModify
@@ -395,10 +396,53 @@ class _PhraseCardState extends State<PhraseCard> {
 
   // Toggle favorit
   void _toggleFavorite() async {
+    // Tambahkan state loading untuk mencegah double tap
+    setState(() {
+      _isUpdating = true;
+    });
+
     try {
       final phraseProvider =
           Provider.of<PhraseProvider>(context, listen: false);
-      await phraseProvider.toggleFavorite(widget.phrase);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Pastikan frasa memiliki userId yang benar untuk toggle
+      final phraseToUpdate = widget.phrase.copyWith(
+        userId: authProvider.userId, // Pastikan userId benar
+      );
+
+      // Simpan status favorit saat ini untuk perbandingan nanti
+      final wasFavorite = phraseToUpdate.isFavorite;
+
+      final success = await phraseProvider.toggleFavorite(phraseToUpdate);
+
+      if (success) {
+        // Tampilkan notifikasi sukses
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(wasFavorite
+                  ? 'Frasa dihapus dari favorit'
+                  : 'Frasa ditambahkan ke favorit'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+
+        // Callback ke parent widget jika ada
+        if (widget.onUpdated != null) {
+          widget.onUpdated!();
+        }
+      } else if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(phraseProvider.error ?? 'Gagal mengubah status favorit'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -407,6 +451,13 @@ class _PhraseCardState extends State<PhraseCard> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      // Pastikan UI tidak terkunci jika terjadi error
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+        });
       }
     }
   }

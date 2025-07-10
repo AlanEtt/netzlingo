@@ -34,7 +34,33 @@ class PhraseProvider with ChangeNotifier {
         DateTime.now().difference(_lastLoadTime!).inSeconds < 30 &&
         _phrases.isNotEmpty) {
       print("Menggunakan cache phrases (last load: $_lastLoadTime)");
-      return;
+
+      // Filter berdasarkan favorit jika parameter tersedia
+      if (isFavorite != null) {
+        print("Filtering cached phrases by favorite status: $isFavorite");
+
+        // PERBAIKAN: Benar-benar filter data yang ada di cache
+        if (isFavorite == true) {
+          // Filter hanya frasa favorit
+          List<Phrase> filteredPhrases = _phrases
+              .where((phrase) =>
+                  phrase.isFavorite &&
+                  (phrase.userId == userId || phrase.userId == 'universal'))
+              .toList();
+
+          _phrases = filteredPhrases;
+          print("Filtered to ${_phrases.length} favorite phrases from cache");
+        } else {
+          // Jika isFavorite false, muat ulang semua frasa
+          forceRefresh = true;
+        }
+      }
+
+      notifyListeners();
+
+      if (!forceRefresh) {
+        return;
+      }
     }
 
     _isLoading = true;
@@ -42,7 +68,9 @@ class PhraseProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print("Loading phrases for user: $userId");
+      print("Loading phrases for user: $userId, isFavorite: $isFavorite");
+
+      // Ambil frasa dari server dengan filter yang sesuai
       _phrases = await _phraseService.getPhrases(
         userId: userId,
         languageId: languageId,
@@ -53,8 +81,15 @@ class PhraseProvider with ChangeNotifier {
       _lastLoadTime = DateTime.now();
       print("Loaded ${_phrases.length} phrases successfully");
 
-      // Jika tidak ada frasa user ditemukan, coba dapatkan frasa default universal
-      if (_phrases.isEmpty && userId != null && userId.isNotEmpty) {
+      // Jika filter favorit aktif dan tidak ada frasa ditemukan, jangan gunakan frasa universal
+      if (isFavorite == true && _phrases.isEmpty) {
+        print("No favorite phrases found for user $userId");
+      }
+      // Jika tidak ada frasa user ditemukan dan bukan filter favorit, coba dapatkan frasa default universal
+      else if (_phrases.isEmpty &&
+          userId != null &&
+          userId.isNotEmpty &&
+          isFavorite != true) {
         print("No phrases found for user $userId, trying universal phrases");
         _phrases = await _phraseService.getPublicPhrases(
           languageId: languageId,
@@ -188,11 +223,24 @@ class PhraseProvider with ChangeNotifier {
   Future<bool> toggleFavorite(Phrase phrase) async {
     try {
       print("Toggling favorite for phrase: ${phrase.id}");
-      final updatedPhrase = await _phraseService.toggleFavorite(phrase);
 
+      // Perbarui UI secara optimistik (tampilkan perubahan segera)
       final index = _phrases.indexWhere((p) => p.id == phrase.id);
       if (index != -1) {
-        _phrases[index] = updatedPhrase;
+        // Buat salinan frasa dengan status favorit dibalik
+        final updatedLocalPhrase =
+            phrase.copyWith(isFavorite: !phrase.isFavorite);
+        _phrases[index] = updatedLocalPhrase;
+        notifyListeners(); // Update UI segera
+      }
+
+      // Kirim perubahan ke server
+      final updatedPhrase = await _phraseService.toggleFavorite(phrase);
+
+      // Update list lokal dengan data dari server (lebih akurat)
+      final serverIndex = _phrases.indexWhere((p) => p.id == updatedPhrase.id);
+      if (serverIndex != -1) {
+        _phrases[serverIndex] = updatedPhrase;
         print("Phrase favorite status toggled successfully in local list");
         notifyListeners();
       }
@@ -201,9 +249,35 @@ class PhraseProvider with ChangeNotifier {
     } catch (e) {
       _error = "Gagal mengubah status favorit: ${e.toString()}";
       print("Error toggling favorite: $_error");
+
+      // Kembalikan status favorit ke aslinya jika gagal
+      final index = _phrases.indexWhere((p) => p.id == phrase.id);
+      if (index != -1) {
+        _phrases[index] = phrase; // Kembalikan ke status asli
+        notifyListeners();
+      }
+
       notifyListeners();
       return false;
     }
+  }
+
+  // Filter frasa favorit
+  List<Phrase> getFavoritePhrases({String? userId}) {
+    // Filter berdasarkan favorit dan user ID jika disediakan
+    if (userId != null && userId.isNotEmpty) {
+      return _phrases
+          .where((phrase) => phrase.isFavorite && phrase.userId == userId)
+          .toList();
+    } else {
+      return _phrases.where((phrase) => phrase.isFavorite).toList();
+    }
+  }
+
+  // PERBAIKAN: Set frasa yang sudah difilter secara manual
+  Future<void> setFilteredPhrases(List<Phrase> filteredPhrases) async {
+    _phrases = filteredPhrases;
+    notifyListeners();
   }
 
   // Mendapatkan frasa berdasarkan ID
