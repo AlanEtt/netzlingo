@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import '../../models/study_session.dart';
 import '../../providers/study_provider.dart';
 import '../../providers/phrase_provider.dart';
-import '../../services/database_service.dart';
+import '../../providers/auth_provider.dart'; // Tambahkan import auth provider
+import '../../utils/async_helper.dart'; // Tambahkan helper
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({Key? key}) : super(key: key);
@@ -19,15 +20,21 @@ class StatisticsScreenState extends State<StatisticsScreen>
   late TabController _tabController;
   List<StudySession> _sessions = [];
   bool _isLoading = true;
+  bool _isLoadingData = false; // Flag untuk mencegah multiple load
   String? _error;
   int _totalPhrases = 0;
   int _favoriteCount = 0;
+  DateTime _lastLoadTime = DateTime.now().subtract(const Duration(minutes: 5));
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadStatistics();
+
+    // Schedule loading after widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _throttledLoadStatistics();
+    });
   }
 
   @override
@@ -36,36 +43,85 @@ class StatisticsScreenState extends State<StatisticsScreen>
     super.dispose();
   }
 
-  Future<void> _loadStatistics() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  // Fungsi untuk throttle load data
+  void _throttledLoadStatistics() {
+    final now = DateTime.now();
+    final difference = now.difference(_lastLoadTime);
 
-    try {
-      // Load study sessions
-      final db = await DatabaseService().database;
-      final sessionMaps = await db.query(
-        'study_sessions',
-        orderBy: 'start_time DESC',
-      );
-
-      // Convert to StudySession objects
-      _sessions = sessionMaps.map((map) => StudySession.fromMap(map)).toList();
-
-      // Get total phrases and favorites
-      final phraseProvider =
-          Provider.of<PhraseProvider>(context, listen: false);
-      await phraseProvider.loadPhrases();
-      _totalPhrases = phraseProvider.phrases.length;
-      _favoriteCount = phraseProvider.phrases.where((p) => p.isFavorite).length;
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+    // Hanya reload jika sudah lewat 30 detik dari load terakhir
+    if (difference.inSeconds > 30 && !_isLoadingData) {
+      _loadStatistics();
+      _lastLoadTime = now;
     }
+  }
+
+  Future<void> _loadStatistics() async {
+    // Hindari multiple loading
+    if (_isLoadingData) return;
+    _isLoadingData = true;
+
+    // PERBAIKAN: Gunakan AsyncHelper untuk operasi async yang lebih aman
+    AsyncHelper.runWithMounted(
+      state: this,
+      operation: () async {
+        // PERBAIKAN: Validasi user ID dan session
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        // Cek dan refresh session jika perlu
+        if (!authProvider.isAuthenticated || authProvider.userId.isEmpty) {
+          print(
+              "Warning: User session invalid in StatisticsScreen, attempting to refresh");
+          final refreshed = await authProvider.checkAndFixSession();
+          if (!refreshed) {
+            throw Exception("Sesi login tidak valid. Silakan login kembali.");
+          }
+        }
+
+        final userId = authProvider.userId;
+
+        if (userId.isEmpty) {
+          throw Exception("Anda harus login untuk melihat statistik");
+        }
+
+        print('Loading statistics for user: $userId');
+
+        // PERBAIKAN: Gunakan StudyProvider untuk mendapatkan sesi belajar
+        final studyProvider =
+            Provider.of<StudyProvider>(context, listen: false);
+        await studyProvider.loadSessions(userId);
+        _sessions = studyProvider.sessions;
+
+        // Get total phrases and favorites
+        final phraseProvider =
+            Provider.of<PhraseProvider>(context, listen: false);
+        await phraseProvider.loadPhrases(userId: userId);
+        _totalPhrases = phraseProvider.phrases.length;
+        _favoriteCount =
+            phraseProvider.phrases.where((p) => p.isFavorite).length;
+
+        print(
+            'Statistics loaded: ${_sessions.length} sessions, $_totalPhrases phrases');
+        return true;
+      },
+      onComplete: (_) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isLoadingData = false;
+          });
+        }
+      },
+      onError: (e) {
+        print('Error loading statistics: $e');
+        if (mounted) {
+          setState(() {
+            _error = e.toString();
+            _isLoading = false;
+            _isLoadingData = false;
+          });
+        }
+      },
+    );
   }
 
   @override
@@ -74,6 +130,14 @@ class StatisticsScreenState extends State<StatisticsScreen>
       appBar: AppBar(
         title: const Text('Statistik'),
         centerTitle: true,
+        actions: [
+          // PERBAIKAN: Tambahkan tombol refresh
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoadingData ? null : _loadStatistics,
+            tooltip: 'Muat Ulang Statistik',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -89,10 +153,23 @@ class StatisticsScreenState extends State<StatisticsScreen>
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text(
-                      'Error: $_error',
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: Colors.red, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error: $_error',
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _isLoadingData ? null : _loadStatistics,
+                          child: const Text('Coba Lagi'),
+                        ),
+                      ],
                     ),
                   ),
                 )
@@ -132,9 +209,9 @@ class StatisticsScreenState extends State<StatisticsScreen>
           // Kartu ringkasan
           Card(
             elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
@@ -154,7 +231,7 @@ class StatisticsScreenState extends State<StatisticsScreen>
                     childAspectRatio: 1.5,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-            children: [
+                    children: [
                       _buildStatCard(
                         'Total Frasa',
                         '$_totalPhrases',
@@ -202,8 +279,8 @@ class StatisticsScreenState extends State<StatisticsScreen>
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
-              ),
-              const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 16),
 
                   // Circular progress indicator
                   Center(
@@ -287,8 +364,8 @@ class StatisticsScreenState extends State<StatisticsScreen>
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
-              ),
-              const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
           // Grafik akurasi
           SizedBox(

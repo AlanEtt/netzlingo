@@ -1,0 +1,962 @@
+{
+    "projectId": "683efa6900051e415ec7",
+    "projectName": "NetzLingo",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": true,
+            "databases": true,
+            "locale": true,
+            "health": true,
+            "storage": true,
+            "teams": true,
+            "users": true,
+            "sites": true,
+            "functions": true,
+            "graphql": true,
+            "messaging": true
+        },
+        "auth": {
+            "methods": {
+                "jwt": true,
+                "phone": true,
+                "invites": true,
+                "anonymous": true,
+                "email-otp": true,
+                "magic-url": true,
+                "email-password": true
+            },
+            "security": {
+                "duration": 31536000,
+                "limit": 0,
+                "sessionsLimit": 10,
+                "passwordHistory": 0,
+                "passwordDictionary": false,
+                "personalDataCheck": false,
+                "sessionAlerts": false,
+                "mockNumbers": []
+            }
+        }
+    },
+    "databases": [
+        {
+            "$id": "683efc300031f618f3c2",
+            "name": "netzlingo_db",
+            "enabled": true
+        }
+    ],
+    "collections": [
+        {
+            "$id": "users",
+            "$permissions": [
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Users",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "email",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "is_premium",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "daily_goal",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 9223372036854775807,
+                    "default": 10
+                },
+                {
+                    "key": "preferred_language",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 10,
+                    "default": "id"
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:10:47.358Z"
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:10:47.831Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "email_index",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "email"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "languages",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"any\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Languages",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "code",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 10,
+                    "default": null
+                },
+                {
+                    "key": "flag_icon",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 10,
+                    "default": null
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:10:53.975Z"
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:10:54.543Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "code_index",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "code"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "name",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "name"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "categories",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Categories",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 255,
+                    "default": null
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000,
+                    "default": ""
+                },
+                {
+                    "key": "language_id",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:02.071Z"
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:02.631Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "user_name_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id",
+                        "name"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "phrases",
+            "$permissions": [
+                "read(\"any\")",
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"guests\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Phrases",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "original_text",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 1000,
+                    "default": null
+                },
+                {
+                    "key": "translated_text",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 1000,
+                    "default": null
+                },
+                {
+                    "key": "language_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "category_id",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "notes",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000,
+                    "default": ""
+                },
+                {
+                    "key": "is_favorite",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "importance",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 1,
+                    "max": 5,
+                    "default": 1
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:12.592Z"
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:13.061Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "language_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "language_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "category_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "category_id"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "tags",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"any\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Tags",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "color",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 20,
+                    "default": "#2196F3"
+                },
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:19.279Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "user_name_index",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "user_id",
+                        "name"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "phrase_tags",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"any\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "PhraseTags",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "phrase_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "tag_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "phrase_tag_index",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "phrase_id",
+                        "tag_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "user_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "review_history",
+            "$permissions": [
+                "read(\"any\")",
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"guests\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "ReviewHistory",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "phrase_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "review_date",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "was_correct",
+                    "type": "boolean",
+                    "required": true,
+                    "array": false,
+                    "default": null
+                },
+                {
+                    "key": "ease_factor",
+                    "type": "double",
+                    "required": false,
+                    "array": false,
+                    "min": 1,
+                    "max": 3,
+                    "default": 2.5
+                },
+                {
+                    "key": "interval",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 1,
+                    "max": 9223372036854775807,
+                    "default": 1
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "phrase_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "phrase_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "review_date_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "review_date"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "study_sessions",
+            "$permissions": [
+                "read(\"any\")",
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"guests\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "StudySessions",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "start_time",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "end_time",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "total_phrases",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "correct_answers",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "min": -9223372036854775808,
+                    "max": 9223372036854775807,
+                    "default": null
+                },
+                {
+                    "key": "session_type",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "language_id",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "category_id",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "start_time_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "start_time"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "settings",
+            "$permissions": [
+                "read(\"any\")",
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"guests\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Settings",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "app_language",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 10,
+                    "default": "id"
+                },
+                {
+                    "key": "theme",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 20,
+                    "default": "light"
+                },
+                {
+                    "key": "is_dark_mode",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "enable_tts",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "enable_notifications",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "notification_time",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 10,
+                    "default": "20:00"
+                },
+                {
+                    "key": "daily_goal",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 9223372036854775807,
+                    "default": 10
+                },
+                {
+                    "key": "daily_session_count",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 9223372036854775807,
+                    "default": 0
+                },
+                {
+                    "key": "last_session_date",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:49.152Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                }
+            ]
+        },
+        {
+            "$id": "subscriptions",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"any\")"
+            ],
+            "databaseId": "683efc300031f618f3c2",
+            "name": "Subscriptions",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "user_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null
+                },
+                {
+                    "key": "plan_type",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
+                    "default": null
+                },
+                {
+                    "key": "start_date",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "end_date",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "is_active",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": true
+                },
+                {
+                    "key": "payment_method",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 50,
+                    "default": null
+                },
+                {
+                    "key": "created_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:56.865Z"
+                },
+                {
+                    "key": "updated_at",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2025-06-03T14:11:57.315Z"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "user_id_index",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "user_id"
+                    ],
+                    "orders": []
+                },
+                {
+                    "key": "end_date_index",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "end_date"
+                    ],
+                    "orders": []
+                }
+            ]
+        }
+    ]
+}

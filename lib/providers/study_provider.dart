@@ -45,6 +45,11 @@ class StudyProvider with ChangeNotifier {
   int get correctAnswers => _correctAnswers;
   bool get isUniversalMode => _isUniversalMode;
 
+  // PERBAIKAN: Tambahkan variabel untuk menyimpan sesi belajar
+  List<StudySession> _studySessions = [];
+  // PERBAIKAN: Tambahkan getter untuk mengakses sesi belajar
+  List<StudySession> get sessions => _studySessions;
+
   // Mendapatkan frasa saat ini
   Phrase? get currentPhrase =>
       _sessionPhrases.isNotEmpty && _currentPhraseIndex < _sessionPhrases.length
@@ -229,6 +234,33 @@ class StudyProvider with ChangeNotifier {
       _currentSession = null;
     } catch (e) {
       _error = e.toString();
+    }
+  }
+
+  // PERBAIKAN: Tambahkan method untuk memuat sesi belajar dari server
+  Future<void> loadSessions(String userId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print('Loading study sessions for user: $userId');
+
+      // Gunakan StudySessionService untuk mengambil sesi dari Appwrite
+      _studySessions = await _studySessionService.getStudySessions(userId);
+
+      // Sort sesi berdasarkan waktu mulai terbaru
+      _studySessions.sort((a, b) => b.startTime.compareTo(a.startTime));
+
+      print('Loaded ${_studySessions.length} study sessions successfully');
+    } catch (e) {
+      print('Error loading study sessions: $e');
+      _error = 'Gagal memuat sesi belajar: $e';
+      // Tetap menggunakan list kosong jika terjadi error
+      _studySessions = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

@@ -31,6 +31,7 @@ class Phrase {
     this.tags, // Tambahkan tags di constructor
   });
 
+  // Map standar dengan semua field termasuk is_public dan tags
   Map<String, dynamic> toMap() {
     return {
       'original_text': originalText,
@@ -44,8 +45,29 @@ class Phrase {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_public': isPublic,
-      'tags': tags ?? [], // Tambahkan tags ke map
+      'tags': tags ?? [],
     };
+  }
+
+  // Map khusus untuk Appwrite yang menghilangkan field yang tidak ada di collection
+  // Gunakan method ini untuk mengirim data ke Appwrite
+  Map<String, dynamic> toAppWriteMap() {
+    // Buat map dasar
+    final map = {
+      'original_text': originalText,
+      'translated_text': translatedText,
+      'language_id': languageId,
+      'category_id': categoryId,
+      'user_id': userId,
+      'notes': notes ?? '',
+      'is_favorite': isFavorite,
+      'importance': importance,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      // Hapus field is_public dan tags jika menyebabkan error
+    };
+
+    return map;
   }
 
   factory Phrase.fromDocument(Document document) {

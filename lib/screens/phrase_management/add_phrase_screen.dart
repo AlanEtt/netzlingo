@@ -7,6 +7,7 @@ import '../../providers/language_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/tag_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/async_helper.dart';
 import '../../widgets/phrase/tag_input_widget.dart';
 import 'category_management_screen.dart';
 
@@ -66,13 +67,22 @@ class AddPhraseScreenState extends State<AddPhraseScreen> {
   }
 
   Future<void> _loadTagsForPhrase(String phraseId) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final tagProvider = Provider.of<TagProvider>(context, listen: false);
-    final tags =
-        await tagProvider.getTagsForPhrase(phraseId, authProvider.userId);
-    setState(() {
-      _selectedTags = tags;
-    });
+    // Gunakan AsyncHelper untuk memastikan operasi aman
+    AsyncHelper.safeSetState(
+      state: this,
+      operation: () async {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final tagProvider = Provider.of<TagProvider>(context, listen: false);
+        return await tagProvider.getTagsForPhrase(
+            phraseId, authProvider.userId);
+      },
+      setStateCallback: (tags) {
+        _selectedTags = tags;
+      },
+      onError: (error) {
+        print("Error loading tags for phrase: $error");
+      },
+    );
   }
 
   @override

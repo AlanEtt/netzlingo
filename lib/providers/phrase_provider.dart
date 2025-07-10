@@ -21,6 +21,13 @@ class PhraseProvider with ChangeNotifier {
       String? categoryId,
       bool? isFavorite,
       bool forceRefresh = false}) async {
+    // PERBAIKAN: Validasi userId untuk keamanan
+    if (userId == null || userId.isEmpty) {
+      print("Warning: No valid userId provided for loadPhrases");
+      _error = "User ID tidak valid, hanya frasa publik yang akan ditampilkan";
+      // Tetap lanjutkan dengan userId null, tapi hanya akan mendapat frasa universal
+    }
+
     // Jika tidak force refresh dan data sudah dimuat dalam 30 detik terakhir, gunakan cache
     if (!forceRefresh &&
         _lastLoadTime != null &&
@@ -228,6 +235,14 @@ class PhraseProvider with ChangeNotifier {
       print("Error getting phrase by ID: $_error");
       return null;
     }
+  }
+
+  // PERBAIKAN: Hapus frasa yang bukan milik user dari list
+  void removeNonUserPhrase(String phraseId) {
+    // Hapus frasa dengan ID tertentu dari daftar lokal
+    _phrases.removeWhere((phrase) => phrase.id == phraseId);
+    print("Removed non-user phrase with ID $phraseId from local list");
+    notifyListeners(); // Refresh UI
   }
 
   // Hapus error message

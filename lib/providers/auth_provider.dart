@@ -369,33 +369,120 @@ class AuthProvider with ChangeNotifier {
     try {
       print('Attempting to refresh user session');
 
-      // Dapatkan data user yang fresh
-      _currentAccount = await _userService.getCurrentUser();
+      // Pendekatan yang lebih robust untuk refresh session
+      try {
+        // Dapatkan data user yang fresh
+        _currentAccount = await _userService.getCurrentUser();
 
-      if (_currentAccount != null) {
-        print('Session refreshed successfully');
-        _isAuthenticated = true;
+        if (_currentAccount != null) {
+          print(
+              'Session refreshed successfully for user: ${_currentAccount!.$id}');
+          _isAuthenticated = true;
 
-        // Refresh data user model juga
-        try {
-          _currentUser = await _userService.getUserModel(_currentAccount!.$id);
-        } catch (userModelError) {
-          print('Error refreshing user model: $userModelError');
-          // Tetap lanjutkan meski gagal dapat user model
+          // Refresh data user model juga
+          try {
+            _currentUser =
+                await _userService.getUserModel(_currentAccount!.$id);
+            print('User model refreshed successfully');
+          } catch (userModelError) {
+            print('Error refreshing user model: $userModelError');
+
+            // Jika gagal mendapatkan user model, coba buat user model baru
+            try {
+              print('Attempting to create user model if not exists');
+              _currentUser = await _userService.getOrCreateUserModel(
+                  _currentAccount!.$id,
+                  _currentAccount!.name,
+                  _currentAccount!.email);
+              print('User model created or retrieved successfully');
+            } catch (createError) {
+              print('Failed to create user model: $createError');
+              // Tetap lanjutkan jika masih gagal
+            }
+          }
+
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        } else {
+          print('User account is null after refresh attempt');
+          throw Exception('Failed to refresh session - user is null');
         }
+      } catch (sessionError) {
+        print('Error during standard refresh: $sessionError');
 
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        throw Exception('Failed to refresh session - user is null');
+        // Jika refresh dengan cara normal gagal, coba cek sesi aktif
+        try {
+          print('Checking active sessions as fallback');
+          final sessions = await _userService.getActiveSessions();
+
+          if (sessions.isNotEmpty) {
+            print('Found ${sessions.length} active sessions');
+
+            // Gunakan sesi pertama yang aktif
+            final session = sessions.first;
+            print('Using active session: ${session.$id}');
+
+            // Dapatkan data user berdasarkan sesi yang aktif
+            _currentAccount = await _userService.getCurrentUser();
+
+            if (_currentAccount != null) {
+              _isAuthenticated = true;
+              _currentUser =
+                  await _userService.getUserModel(_currentAccount!.$id);
+
+              print(
+                  'Successfully restored session for user: ${_currentAccount!.$id}');
+
+              _isLoading = false;
+              notifyListeners();
+              return true;
+            }
+          } else {
+            print('No active sessions found');
+          }
+        } catch (fallbackError) {
+          print('Session fallback approach failed: $fallbackError');
+        }
       }
+
+      throw Exception('All session refresh approaches failed');
     } catch (e) {
       print('Error refreshing session: $e');
       _error = 'Gagal memperbarui sesi: $e';
       _isAuthenticated = false;
+      _currentAccount = null;
+      _currentUser = null;
       _isLoading = false;
       notifyListeners();
+      return false;
+    }
+  }
+
+  // Metode untuk check dan fix session jika bermasalah
+  Future<bool> checkAndFixSession() async {
+    try {
+      print('Checking and fixing session if needed');
+
+      // Jika sudah authenticated, coba validasi sesi
+      if (_isAuthenticated && _currentAccount != null) {
+        try {
+          // Coba verifikasi sesi dengan request sederhana
+          await _userService.getAccountPrefs();
+          print('Session is valid');
+          return true;
+        } catch (sessionError) {
+          print('Session validation failed: $sessionError');
+
+          // Jika tidak valid, coba refresh
+          return await refreshSession();
+        }
+      } else {
+        // Tidak authenticated, coba refresh session
+        return await refreshSession();
+      }
+    } catch (e) {
+      print('Error in checkAndFixSession: $e');
       return false;
     }
   }

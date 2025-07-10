@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/phrase.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/phrase_provider.dart';
+import '../../utils/async_helper.dart'; // Tambahkan import
 import '../../widgets/phrase/phrase_card.dart';
 import 'add_phrase_screen.dart';
 
@@ -19,11 +20,17 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   bool _isLoading = false;
+  bool _isLoadingData = false;
+  DateTime _lastRefreshTime =
+      DateTime.now().subtract(const Duration(minutes: 5));
 
   @override
   void initState() {
     super.initState();
-    _loadPhrases();
+    // Jadwalkan loading setelah widget dibuat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _throttledLoadPhrases();
+    });
   }
 
   @override
@@ -32,51 +39,147 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
     super.dispose();
   }
 
+  // Fungsi untuk throttle load data
+  void _throttledLoadPhrases() {
+    final now = DateTime.now();
+    final difference = now.difference(_lastRefreshTime);
+
+    // Hanya reload jika sudah lewat 30 detik dari load terakhir
+    if (difference.inSeconds > 30 && !_isLoadingData) {
+      _loadPhrases();
+      _lastRefreshTime = now;
+    }
+  }
+
   // Fungsi untuk memuat frasa
   Future<void> _loadPhrases() async {
+    // Hindari loading berulang
+    if (_isLoadingData) return;
+    _isLoadingData = true;
+
+    // Set loading state di awal
     setState(() {
       _isLoading = true;
     });
 
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final phraseProvider =
-          Provider.of<PhraseProvider>(context, listen: false);
+    // Gunakan AsyncHelper untuk operasi aman
+    AsyncHelper.runWithMounted(
+      state: this,
+      operation: () async {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final phraseProvider =
+            Provider.of<PhraseProvider>(context, listen: false);
 
-      // Muat frasa milik user yang login
-      await phraseProvider.loadPhrases(userId: authProvider.userId);
-    } catch (e) {
-      print('Error loading phrases: $e');
-      // Error akan ditangani oleh provider
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+        // PERBAIKAN: Validasi bahwa user benar-benar login
+        final userId = authProvider.userId;
+
+        // PERBAIKAN: Cek status autentikasi terlebih dahulu dan refresh session jika perlu
+        if (!authProvider.isAuthenticated || userId.isEmpty) {
+          print("Warning: User session invalid, attempting to refresh");
+          final sessionRefreshed = await authProvider.checkAndFixSession();
+
+          if (!sessionRefreshed || authProvider.userId.isEmpty) {
+            throw Exception("Anda harus login untuk melihat frasa");
+          }
+        }
+
+        // Pastikan menggunakan userId terbaru setelah refresh
+        final currentUserId = authProvider.userId;
+        print('Loading phrases for user: $currentUserId');
+
+        // Muat frasa milik user yang login - hapus forceRefresh untuk mengurangi request network
+        await phraseProvider.loadPhrases(userId: currentUserId);
+
+        // PERBAIKAN: Validasi hasil query untuk pastikan hanya frasa milik user
+        final loadedPhrases = phraseProvider.phrases;
+        List<String> nonUserPhraseIds = [];
+
+        for (var phrase in loadedPhrases) {
+          if (phrase.userId != currentUserId && phrase.userId != 'universal') {
+            print(
+                "Warning: Found phrase from another user: ${phrase.id}, user: ${phrase.userId}");
+            nonUserPhraseIds.add(phrase.id);
+          }
+        }
+
+        // Hapus frasa yang bukan milik user dari list lokal
+        if (nonUserPhraseIds.isNotEmpty) {
+          print('Removing ${nonUserPhraseIds.length} non-user phrases');
+          for (var id in nonUserPhraseIds) {
+            phraseProvider.removeNonUserPhrase(id);
+          }
+        }
+
+        return true; // Operasi berhasil
+      },
+      onComplete: (_) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isLoadingData = false;
+          });
+        }
+      },
+      onError: (e) {
+        print('Error loading phrases: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoading = false;
+            _isLoadingData = false;
+          });
+        }
+      },
+    );
   }
 
   // Fungsi untuk pencarian
   void _searchPhrases(String query) {
+    if (_isSearching) return; // Hindari pencarian berulang
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final phraseProvider = Provider.of<PhraseProvider>(context, listen: false);
 
+    // Set loading state di awal tanpa async
     setState(() {
       _isSearching = true;
     });
 
-    // Jika query kosong, muat semua frasa
-    if (query.trim().isEmpty) {
-      phraseProvider.loadPhrases(userId: authProvider.userId);
-    } else {
-      // Cari frasa berdasarkan query
-      phraseProvider.searchPhrases(query, userId: authProvider.userId);
-    }
-
-    setState(() {
-      _isSearching = false;
-    });
+    // Gunakan AsyncHelper untuk memastikan operasi async aman
+    AsyncHelper.runWithMounted(
+      state: this,
+      operation: () async {
+        // Jika query kosong, muat semua frasa
+        if (query.trim().isEmpty) {
+          await phraseProvider.loadPhrases(userId: authProvider.userId);
+        } else {
+          // Cari frasa berdasarkan query
+          await phraseProvider.searchPhrases(query,
+              userId: authProvider.userId);
+        }
+        return true; // Operasi berhasil
+      },
+      onComplete: (_) {
+        if (mounted) {
+          setState(() {
+            _isSearching = false;
+          });
+        }
+      },
+      onError: (e) {
+        print('Error searching phrases: $e');
+        if (mounted) {
+          setState(() {
+            _isSearching = false;
+          });
+        }
+      },
+    );
   }
 
   // Navigasi ke halaman tambah frasa
@@ -103,21 +206,25 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
-            onPressed: () {
-              // Filter frasa favorit
-              phraseProvider.loadPhrases(
-                userId: authProvider.userId,
-                isFavorite: true,
-              );
-            },
+            onPressed: _isLoadingData
+                ? null
+                : () {
+                    // Filter frasa favorit
+                    phraseProvider.loadPhrases(
+                      userId: authProvider.userId,
+                      isFavorite: true,
+                    );
+                  },
             tooltip: 'Tampilkan Favorit',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              // Refresh frasa
-              phraseProvider.refreshPhrases(userId: authProvider.userId);
-            },
+            onPressed: _isLoadingData
+                ? null
+                : () {
+                    // Hanya refresh jika tidak sedang loading
+                    _loadPhrases();
+                  },
             tooltip: 'Refresh',
           ),
         ],
@@ -146,8 +253,8 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
                 ),
               ),
               onChanged: (value) {
-                // Tunggu pengguna selesai mengetik
-                Future.delayed(const Duration(milliseconds: 300), () {
+                // Tunggu pengguna selesai mengetik dengan debounce yang lebih lama
+                Future.delayed(const Duration(milliseconds: 500), () {
                   // Pastikan value masih sama (pengguna tidak mengetik lagi)
                   if (_searchController.text == value) {
                     _searchPhrases(value);
@@ -177,9 +284,14 @@ class _PhraseListScreenState extends State<PhraseListScreen> {
           // List frasa
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => phraseProvider.refreshPhrases(
-                userId: authProvider.userId,
-              ),
+              onRefresh: () async {
+                // Hindari refresh jika sudah sedang loading
+                if (!_isLoadingData) {
+                  await phraseProvider.refreshPhrases(
+                    userId: authProvider.userId,
+                  );
+                }
+              },
               child: phraseProvider.phrases.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(

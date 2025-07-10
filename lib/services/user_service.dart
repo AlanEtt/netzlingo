@@ -181,6 +181,61 @@ class UserService {
     }
   }
 
+  // BARU: Mendapatkan atau membuat UserModel jika belum ada
+  Future<UserModel> getOrCreateUserModel(
+      String userId, String name, String email) async {
+    try {
+      // Coba dapatkan user model terlebih dahulu
+      try {
+        final userModel = await getUserModel(userId);
+        print('User model found for $userId');
+        return userModel;
+      } catch (e) {
+        print('User model not found, creating new one: $e');
+
+        // Buat user model baru jika tidak ditemukan
+        final userModel = UserModel(
+          id: userId,
+          name: name,
+          email: email,
+          isPremium: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          dailyGoal: 10,
+          preferredLanguage: 'id',
+        );
+
+        // Buat dokumen di database
+        await _databases.createDocument(
+          databaseId: AppwriteConstants.databaseId,
+          collectionId: AppwriteConstants.usersCollection,
+          documentId: userId,
+          data: userModel.toMap(),
+          permissions: [
+            Permission.read(Role.user(userId)),
+            Permission.update(Role.user(userId)),
+            Permission.delete(Role.user(userId)),
+          ],
+        );
+
+        return userModel;
+      }
+    } catch (e) {
+      print('Error in getOrCreateUserModel: $e');
+      rethrow;
+    }
+  }
+
+  // BARU: Mendapatkan preferensi akun untuk validasi sesi
+  Future<Preferences> getAccountPrefs() async {
+    try {
+      return await _account.getPrefs();
+    } catch (e) {
+      print('Error getting account preferences: $e');
+      rethrow;
+    }
+  }
+
   // Membuat dokumen user di collection users
   Future<void> _createUserDocument(User user) async {
     try {

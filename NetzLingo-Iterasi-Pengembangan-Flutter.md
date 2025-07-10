@@ -1,6 +1,6 @@
 # Rencana Iterasi & Progress MVP Aplikasi NetzLingo (Revisi)
 
-Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [08-06-2025]
+Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [10-07-2025]
 
 ## Pra-Iterasi: Persiapan & Setup Awal (Selesai)
 
@@ -12,106 +12,119 @@ Penyusun: [Rizki Alan Habibi - 221240001238] Tanggal Update Terakhir: [08-06-202
   - ✅ Setup AppWrite & Project Configuration
   - ✅ Konfigurasi Authentication System
 
-## Iterasi 1: Autentikasi & Manajemen Frasa Dasar (Fokus: CRUD yang Bekerja) 🟡
+## Iterasi 1: Autentikasi & Manajemen Frasa Dasar (Fokus: CRUD yang Bekerja) ✅
 
-- Progress Iterasi: 70% (Sedang Berjalan)
+- Progress Iterasi: 100% (Selesai)
   - ✅ Implementasi User Authentication (Register, Login, Logout)
   - ✅ UI: Form Tambah & Edit Frasa
   - ✅ UI: List Frasa dengan Card
   - ✅ Fitur Hapus Frasa
-  - 🟡 **Perbaikan CRUD Frasa** (Prioritas: memperbaiki bug saat menambah frasa)
-  - 🟡 **Perbaikan Permissions AppWrite** (untuk memastikan akses pengguna berfungsi)
-  - 🟡 Implementasi Sistem Fallback Data Universal
-  - ⬜ Penyempurnaan UI Manajemen Frasa
+  - ✅ Perbaikan CRUD Frasa
+  - ✅ Perbaikan Permissions AppWrite untuk isolasi data antar pengguna
+  - ✅ Implementasi Sistem Fallback Data Universal
+  - ✅ Penyempurnaan UI Manajemen Frasa
+  - ✅ Validasi Kepemilikan Data (User ID Filtering)
+  - ✅ Optimasi State Management dengan AsyncHelper
 
-## Iterasi 2: Kategori & Organisasi (Fokus: Fitur Pengorganisasian) ⬜
+## Iterasi 2: Kategori, Organisasi & UX (Fokus: Fitur Pengorganisasian) ✅
 
-- Progress Iterasi: 0% (Belum dimulai)
-  - ⬜ Implementasi Kategori untuk Frasa (dengan UI yang intuitif)
-  - ⬜ Implementasi Tag untuk Frasa
-  - ⬜ Fitur Pencarian Sederhana
-  - ⬜ Filter Frasa Berdasarkan Kategori
-  - ⬜ Filter Frasa Berdasarkan Bahasa
-  - ⬜ Manajemen Bahasa
-  - ⬜ Optimasi Performa Database Query
+- Progress Iterasi: 100% (Selesai)
+  - ✅ Implementasi Kategori untuk Frasa
+  - ✅ Implementasi Tag untuk Frasa (kemudian diredesain)
+  - ✅ Fitur Pencarian dengan debouncing
+  - ✅ Filter Frasa Berdasarkan Kategori
+  - ✅ Filter Frasa Berdasarkan Bahasa
+  - ✅ Manajemen Bahasa
+  - ✅ Optimasi Performa Database Query
+  - ✅ Perbaikan UI untuk PhraseCard
+  - ✅ Implementasi Text-to-Speech
+  - ✅ Navigasi yang lebih intuitif
+  - ✅ Sistem notifikasi untuk feedback operasi CRUD
 
-## Iterasi 3: Mode Pembelajaran Dasar ⬜
+## Iterasi 3: Mode Pembelajaran & Performa 🟡
 
-- Progress Iterasi: 0% (Belum dimulai)
-  - ⬜ Mode Latihan: Flashcard Sederhana
-  - ⬜ Mode Latihan: Quiz Pilihan Ganda
-  - ⬜ Mode Latihan: Pengetikan
-  - ⬜ Implementasi TTS Dasar (Text-to-Speech)
-  - ⬜ Transisi Antar Kartu yang Mulus
-  - ⬜ Tampilan Skor dan Progres Latihan
-  - ⬜ Akses Universal untuk Mode Latihan
+- Progress Iterasi: 75% (Sedang Berjalan)
+  - ✅ Mode Latihan: Flashcard Sederhana
+  - ✅ Mode Latihan: Quiz Pilihan Ganda
+  - ✅ Mode Latihan: Pengetikan
+  - ✅ Implementasi TTS (Text-to-Speech) 
+  - ✅ Transisi Antar Kartu yang Mulus
+  - ✅ Tampilan Skor dan Progres Latihan
+  - ✅ Akses Universal untuk Mode Latihan
+  - ✅ Implementasi Statistik Pembelajaran
+  - ✅ Grafik Performa Belajar dengan FL Chart
+  - ✅ Tema Terang/Gelap
+  - ✅ Persistensi Login & State Management
+  - 🟡 **Optimasi Performa Aplikasi**
+    - ✅ Optimasi refresh state dan throttling
+    - ✅ Pencegahan setState berulang saat build
+    - ✅ Pengurangan network request dengan cached data
+    - 🟡 Optimasi renderisasi komponen UI
+  - 🟡 **Testing & Debugging**
+    - ✅ Perbaikan error StudyProvider
+    - ✅ Perbaikan error dari setstate berulang
+    - 🟡 Uji performa pada berbagai device
 
 ## Iterasi 4: Penyempurnaan UI/UX & Deployment ⬜
 
-- Progress Iterasi: 0% (Belum dimulai)
-  - ⬜ Penyempurnaan UI Secara Keseluruhan
-  - ⬜ Implementasi Tema Terang/Gelap
-  - ⬜ Optimasi untuk Berbagai Ukuran Layar
-  - ⬜ Optimasi Kinerja Aplikasi
+- Progress Iterasi: 25% (Awal pengerjaan)
+  - ✅ Perbaikan UI Secara Keseluruhan
+  - ✅ Implementasi Tema Terang/Gelap
+  - 🟡 Optimasi untuk Berbagai Ukuran Layar
+  - 🟡 Optimasi Kinerja Aplikasi
   - ⬜ Testing Fungsional Menyeluruh
   - ⬜ Perbaikan Bug Final
   - ⬜ Dokumentasi Pengguna
   - ⬜ Deployment ke Play Store (Alpha/Beta)
 
-## Gantt Chart Timeline
+## Gantt Chart Timeline (Diperbarui)
 
 ```mermaid
 gantt
-    title Alur Iterasi Pengembangan MVP NetzLingo (Revisi)
+    title Alur Iterasi Pengembangan MVP NetzLingo (Update Juli 2025)
     dateFormat  YYYY-MM-DD
     section Persiapan
     Setup Lingkungan & AppWrite   :done, a1, 2025-06-01, 5d
     section Pengembangan
-    Iterasi 1: Autentikasi & CRUD Frasa    :active, b1, 2025-06-06, 14d
-    Iterasi 2: Kategori & Organisasi       :b2, after b1, 14d
-    Iterasi 3: Mode Pembelajaran Dasar     :b3, after b2, 14d
-    Iterasi 4: Penyempurnaan & Deployment  :b4, after b3, 14d
+    Iterasi 1: Autentikasi & CRUD Frasa    :done, b1, 2025-06-06, 14d
+    Iterasi 2: Kategori & Organisasi       :done, b2, 2025-06-20, 10d
+    Iterasi 3: Mode Pembelajaran & Performa:active, b3, 2025-06-30, 14d
+    Iterasi 4: Penyempurnaan & Deployment  :b4, 2025-07-14, 14d
     section Testing
-    Testing Internal & Bug Fixing          :c1, 2025-08-01, 7d
+    Testing Internal & Bug Fixing          :c1, 2025-07-21, 10d
 ```
 
-## Fokus Perbaikan Utama
+## Pencapaian & Perbaikan Utama
 
-### Perbaikan CRUD Frasa
-1. **Permasalahan Permissions**: Terdapat masalah dengan izin Appwrite saat menambah/mengubah frasa
-   - Solusi: Perbaiki struktur permissions dengan format yang konsisten
-   - Implementasi fallback ke mode tanpa permissions jika gagal
+### 1. Perbaikan Performa Aplikasi
+- ✅ **Optimasi State Management**: Implementasi AsyncHelper untuk mencegah setState saat build
+- ✅ **Throttling & Debouncing**: Mencegah refresh data berlebihan dan UI lag
+- ✅ **Pengurangan Network Request**: Menghindari forceRefresh yang tidak perlu
+- ✅ **Flag Anti-Overlapping Operations**: Mencegah operasi berulang yang menyebabkan lag
 
-2. **Manajemen Error yang Lebih Baik**:
-   - Tambahkan penanganan error khusus untuk kasus umum
-   - Berikan pesan error yang lebih informatif kepada pengguna
-   - Implementasi sistem fallback bertingkat
+### 2. Keamanan & Isolasi Data
+- ✅ **Strict User ID Filtering**: Memastikan pengguna hanya melihat data milik mereka
+- ✅ **Permission Management**: Struktur permission AppWrite yang lebih konsisten
+- ✅ **Session Validation**: Otomatis memvalidasi dan refresh session yang kedaluwarsa
 
-3. **Optimasi Performa Kueri**:
-   - Batasi jumlah kueri database
-   - Implementasi caching untuk data yang sering diakses
+### 3. Pengalaman Pengguna
+- ✅ **Text-to-Speech**: Memungkinkan pengguna mendengar pengucapan frasa
+- ✅ **Mode Pembelajaran Interaktif**: Multiple learning modes (flashcard, quiz, typing)
+- ✅ **UI Responsif**: Feedback visual untuk setiap aksi pengguna
+- ✅ **Mode Tema**: Dukungan tema terang dan gelap
 
-### Arsitektur Data Universal
+### 4. Arsitektur Data
+- ✅ **Data Universal Fallback**: Sistem data berlapis untuk memastikan konten selalu tersedia
+- ✅ **Pencegahan Data Crosstalk**: Validasi ketat untuk mencegah data pengguna tercampur
+- ✅ **Robust Error Handling**: Penanganan error yang lebih baik dengan fallback state
 
-Untuk memastikan pengguna selalu memiliki akses ke frasa, kami mengimplementasikan sistem data berlapis:
-
-1. **Layer 1**: Data pribadi pengguna (user_id = ID pengguna)
-2. **Layer 2**: Data universal (user_id = 'universal')
-3. **Layer 3**: Data statis bawaan aplikasi (fallback terakhir)
+## Fitur Tambahan yang Diimplementasikan
+1. **Statistik Pembelajaran**: Tracking performa belajar dengan visualisasi data
+2. **Session Management**: Sistem yang mempertahankan state login di seluruh app
+3. **Validasi Lanjutan**: Memastikan integritas data di sisi client
 
 ## Fitur yang Ditunda/Dihapus
-
-Fitur berikut telah ditunda atau dihapus dari MVP untuk menyederhanakan pengembangan:
-
-1. ~~Algoritma Spaced Repetition yang kompleks~~
-2. ~~Fitur Statistik Pembelajaran~~
-3. ~~Model Subscription Premium~~
-4. ~~Fitur Import/Export Data~~
-5. ~~Fitur Notifikasi~~
-
-## Prioritas Sekarang
-
-1. **Perbaikan CRUD Frasa**: Memastikan pengguna dapat menambah, mengubah, dan menghapus frasa dengan andal
-2. **UI yang Sederhana namun Intuitif**: Fokus pada kemudahan penggunaan
-3. **Mode Pembelajaran Dasar**: Implementasi fitur pembelajaran yang fungsional tanpa kompleksitas berlebihan
-4. **Kestabilan Aplikasi**: Memastikan aplikasi berjalan tanpa crash
+1. ~~Algoritma Spaced Repetition yang kompleks~~ (Disederhanakan untuk MVP)
+2. ~~Model Subscription Premium~~ (Ditunda untuk fase berikutnya)
+3. ~~Fitur Import/Export Data~~ (Ditunda)
+4. ~~Notifikasi Push~~ (Ditunda)

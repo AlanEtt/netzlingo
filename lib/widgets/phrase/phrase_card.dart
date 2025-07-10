@@ -37,11 +37,28 @@ class _PhraseCardState extends State<PhraseCard> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUserId = authProvider.userId;
 
-    // Tentukan apakah user dapat mengedit/menghapus frasa ini
+    // PERBAIKAN: Tentukan apakah user dapat mengedit/menghapus frasa ini dengan lebih ketat
     final bool canModify =
         currentUserId.isNotEmpty && currentUserId == widget.phrase.userId;
 
+    // PERBAIKAN: Tambahkan notifikasi visual jika frasa bukan milik user
+    final bool isUniversal = widget.phrase.userId == 'universal';
+    final bool isOtherUserPhrase =
+        !canModify && !isUniversal && widget.phrase.userId != currentUserId;
+
+    if (isOtherUserPhrase) {
+      print(
+          "Warning: Displaying phrase ${widget.phrase.id} owned by ${widget.phrase.userId} to user $currentUserId");
+    }
+
     return Card(
+      // PERBAIKAN: Tambahkan border merah jika frasa milik user lain (untuk debugging)
+      shape: isOtherUserPhrase
+          ? RoundedRectangleBorder(
+              side: const BorderSide(color: Colors.red, width: 2.0),
+              borderRadius: BorderRadius.circular(4.0),
+            )
+          : null,
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
       elevation: 2.0,
       child: Padding(
@@ -68,16 +85,19 @@ class _PhraseCardState extends State<PhraseCard> {
                   },
                   tooltip: 'Dengarkan',
                 ),
+                // PERBAIKAN: Tombol favorit hanya berfungsi jika frasa milik user sendiri
                 IconButton(
                   icon: Icon(
                     widget.phrase.isFavorite
                         ? Icons.favorite
                         : Icons.favorite_border,
                   ),
-                  onPressed: _toggleFavorite,
-                  tooltip: widget.phrase.isFavorite
-                      ? 'Hapus dari favorit'
-                      : 'Tambahkan ke favorit',
+                  onPressed: canModify ? _toggleFavorite : null,
+                  tooltip: canModify
+                      ? (widget.phrase.isFavorite
+                          ? 'Hapus dari favorit'
+                          : 'Tambahkan ke favorit')
+                      : 'Hanya pemilik yang dapat mengubah favorit',
                 ),
               ],
             ),
@@ -115,6 +135,22 @@ class _PhraseCardState extends State<PhraseCard> {
                 }).toList(),
               ),
             const SizedBox(height: 12.0),
+            // PERBAIKAN: Tampilkan indikator ownership jika frasa dari user lain
+            if (isOtherUserPhrase)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Frasa user lain',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ),
             // Tombol Edit & Hapus hanya muncul jika user adalah pemilik frasa
             if (canModify)
               Row(
